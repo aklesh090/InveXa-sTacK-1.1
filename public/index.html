@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InveXa sTacK — Grocery Inventory Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="analysis.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* ═══ LOGIN SCREEN (integrated) ═══ */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            color: #f0ece4;
+            transition: opacity 0.4s
+        }
+
+        #loginScreen.hidden {
+            display: none
+        }
+
+        /* App layout hidden by default until auth passes */
+        .app-layout {
+            display: none !important
+        }
+
+        .app-layout.authenticated {
+            display: flex !important
+        }
+
+        .login-particles {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none
+        }
+
+        .login-particles .lp {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.12;
+            animation: lpFloat 20s infinite ease-in-out
+        }
+
+        .login-particles .lp:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(201, 149, 107, 0.3), transparent 70%);
+            top: -5%;
+            left: 70%;
+            animation-duration: 25s
+        }
+
+        .login-particles .lp:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(46, 204, 113, 0.25), transparent 70%);
+            top: 60%;
+            left: -5%;
+            animation-delay: -5s;
+            animation-duration: 18s
+        }
+
+        .login-particles .lp:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(201, 149, 107, 0.2), transparent 70%);
+            top: 30%;
+            left: 50%;
+            animation-delay: -10s;
+            animation-duration: 22s
+        }
+
+        @keyframes lpFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1)
+            }
+
+            25% {
+                transform: translate(30px, -40px) scale(1.1)
+            }
+
+            50% {
+                transform: translate(-20px, 30px) scale(0.9)
+            }
+
+            75% {
+                transform: translate(40px, 20px) scale(1.05)
+            }
+        }
+
+        .login-box {
+            display: flex;
+            width: min(1100px, 95vw);
+            height: min(680px, 92vh);
+            background: #12121a;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(201, 149, 107, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            z-index: 1
+        }
+
+        .login-brand {
+            flex: 0 0 45%;
+            background: linear-gradient(165deg, #0d0d14 0%, #111118 50%, #0f1a14 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 48px 40px;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid rgba(255, 255, 255, 0.08)
+        }
+
+        .login-brand::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 70%, rgba(46, 204, 113, 0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(201, 149, 107, 0.05) 0%, transparent 60%);
+            pointer-events: none
+        }
+
+        .login-brand-inner {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 24px
+        }
+
+        .login-brand img {
+            max-width: 340px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.4));
+            animation: logoIn 1s ease-out
+        }
+
+        .login-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px
+        }
+
+        .login-fallback i {
+            font-size: 3rem;
+            color: #2ecc71;
+            filter: drop-shadow(0 0 20px rgba(46, 204, 113, 0.3))
+        }
+
+        .login-fallback h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c9956b 0%, #e0b088 50%, #c9956b 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1
+        }
+
+        @keyframes logoIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+
+        .login-tagline {
+            font-size: 0.85rem;
+            color: rgba(240, 236, 228, 0.55);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 500
+        }
+
+        .login-features {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 20px;
+            width: 100%
+        }
+
+        .login-feat {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s;
+            font-size: 0.88rem
+        }
+
+        .login-feat:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(201, 149, 107, 0.2);
+            transform: translateX(4px)
+        }
+
+        .login-feat i {
+            color: #c9956b;
+            font-size: 1rem;
+            width: 24px;
+            text-align: center
+        }
+
+        .login-form-panel {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 52px;
+            position: relative
+        }
+
+        .login-form-inner {
+            width: 100%;
+            max-width: 380px
+        }
+
+        .auth-view {
+            display: none;
+            animation: authSlide 0.4s ease-out
+        }
+
+        .auth-view.active {
+            display: block
+        }
+
+        @keyframes authSlide {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .auth-hdr {
+            margin-bottom: 36px
+        }
+
+        .auth-hdr h2 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #c9956b, #e0b088);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .auth-hdr p {
+            font-size: 0.92rem;
+            color: rgba(240, 236, 228, 0.55)
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px
+        }
+
+        .auth-input {
+            position: relative;
+            display: flex;
+            align-items: center
+        }
+
+        .auth-input .ico {
+            position: absolute;
+            left: 16px;
+            color: rgba(240, 236, 228, 0.55);
+            font-size: 0.9rem;
+            z-index: 1;
+            transition: color 0.3s
+        }
+
+        .auth-input input,
+        .auth-input select {
+            width: 100%;
+            padding: 16px 48px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            color: #f0ece4;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s;
+            outline: none
+        }
+
+        .auth-input input::placeholder {
+            color: rgba(240, 236, 228, 0.4)
+        }
+
+        .auth-input input:focus,
+        .auth-input select:focus {
+            border-color: #c9956b;
+            box-shadow: 0 0 0 3px rgba(201, 149, 107, 0.1);
+            background: rgba(255, 255, 255, 0.06)
+        }
+
+        .auth-input:focus-within .ico {
+            color: #c9956b
+        }
+
+        .auth-input select option {
+            background: #12121a;
+            color: #f0ece4
+        }
+
+        .toggle-pwd {
+            position: absolute;
+            right: 14px;
+            background: none;
+            border: none;
+            color: rgba(240, 236, 228, 0.55);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 0.9rem;
+            transition: color 0.3s
+        }
+
+        .toggle-pwd:hover {
+            color: #c9956b
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #c9956b 0%, #e0b088 50%, #c9956b 100%);
+            color: #0a0a0f;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(201, 149, 107, 0.3)
+        }
+
+        .btn-auth:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none
+        }
+
+        .btn-auth.success {
+            background: linear-gradient(135deg, #1a6b3a, #2ecc71) !important
+        }
+
+        .btn-auth.btn-green {
+            background: linear-gradient(135deg, #1a6b3a, #2ecc71)
+        }
+
+        @keyframes authShake {
+
+            0%,
+            100% {
+                transform: translateX(0)
+            }
+
+            20%,
+            60% {
+                transform: translateX(-8px)
+            }
+
+            40%,
+            80% {
+                transform: translateX(8px)
+            }
+        }
+
+        .btn-auth.shake {
+            animation: authShake 0.5s ease-in-out
+        }
+
+        .auth-err {
+            padding: 12px 16px;
+            background: rgba(219, 69, 69, 0.12);
+            border: 1px solid rgba(219, 69, 69, 0.25);
+            border-radius: 10px;
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            text-align: center
+        }
+
+        .auth-switch {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 0.88rem;
+            color: rgba(240, 236, 228, 0.55)
+        }
+
+        .auth-switch a {
+            color: #e0b088;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s
+        }
+
+        .auth-switch a:hover {
+            color: #c9956b;
+            text-decoration: underline
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: rgba(240, 236, 228, 0.55);
+            cursor: pointer
+        }
+
+        .remember-me input {
+            accent-color: #c9956b;
+            width: 16px;
+            height: 16px;
+            cursor: pointer
+        }
+
+        @media(max-width:768px) {
+            .login-box {
+                flex-direction: column;
+                height: auto;
+                max-height: 95vh;
+                overflow-y: auto
+            }
+
+            .login-brand {
+                flex: none;
+                padding: 32px 24px
+            }
+
+            .login-features {
+                display: none
+            }
+
+            .login-brand img {
+                max-width: 220px
+            }
+
+            .login-form-panel {
+                padding: 32px 28px
+            }
+        }
+
+        /* ═══ THEME TOGGLE ═══ */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(201, 149, 107, 0.2)
+        }
+
+        .theme-toggle-track {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1a1a28, #2a2a3a);
+            position: relative;
+            transition: background 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1)
+        }
+
+        .theme-toggle-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #c9956b;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3)
+        }
+
+        [data-theme="light"] .theme-toggle-track {
+            background: linear-gradient(135deg, #e0e0e0, #d0d0d0);
+            border-color: rgba(0, 0, 0, 0.1)
+        }
+
+        [data-theme="light"] .theme-toggle-thumb {
+            transform: translateX(20px);
+            background: #0066FF
+        }
+
+        .theme-toggle-label {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            font-weight: 500
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ═══════════════════════════════════════════════════════
+         LOGIN SCREEN (redirects to login.html for full auth flows)
+         ═══════════════════════════════════════════════════════ -->
+    <div id="loginScreen">
+        <div class="login-particles">
+            <div class="lp"></div>
+            <div class="lp"></div>
+            <div class="lp"></div>
+        </div>
+        <div class="login-box">
+            <div class="login-brand">
+                <div class="login-brand-inner">
+                    <div>
+                        <img src="logo.png" alt="InveXa sTacK" id="brandLogo2"
+                            onerror="this.style.display='none';document.getElementById('fallback2').style.display='flex';">
+                        <div class="login-fallback" id="fallback2" style="display:none;">
+                            <i class="fas fa-cart-shopping"></i>
+                            <h1>InveXa<br>sTacK</h1>
+                        </div>
+                    </div>
+                    <p class="login-tagline">Multi-Store Inventory System</p>
+                    <div class="login-features">
+                        <div class="login-feat"><i class="fas fa-store"></i><span>Multi-Store Support</span></div>
+                        <div class="login-feat"><i class="fas fa-envelope-circle-check"></i><span>Email Verified
+                                Access</span></div>
+                        <div class="login-feat"><i class="fas fa-brain"></i><span>AI-Powered Predictions</span></div>
+                        <div class="login-feat"><i class="fas fa-boxes-stacked"></i><span>Smart Inventory Control</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="font-size:0.72rem;color:rgba(240,236,228,0.35);position:relative;z-index:1;">&copy; 2026
+                    InveXa sTacK. All rights reserved.</p>
+            </div>
+            <div class="login-form-panel">
+                <div class="login-form-inner">
+                    <!-- Quick Login View (email-based) -->
+                    <div id="loginView" class="auth-view active">
+                        <div class="auth-hdr">
+                            <h2>Welcome Back</h2>
+                            <p>Sign in with your email</p>
+                        </div>
+                        <form id="loginForm" class="auth-form">
+                            <div class="auth-input">
+                                <div class="ico"><i class="fas fa-envelope"></i></div><input type="email"
+                                    id="loginEmail" placeholder="Email address" required autocomplete="email">
+                            </div>
+                            <div class="auth-input">
+                                <div class="ico"><i class="fas fa-lock"></i></div><input type="password"
+                                    id="loginPassword" placeholder="Password" required
+                                    autocomplete="current-password"><button type="button" class="toggle-pwd"
+                                    onclick="togglePwd('loginPassword',this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                            <button type="submit" class="btn-auth" id="loginBtn"><span class="btn-text">Sign
+                                    In</span><span class="btn-loader" style="display:none;"><i
+                                        class="fas fa-spinner fa-spin"></i></span><i class="fas fa-arrow-right"
+                                    style="transition:transform 0.3s"></i></button>
+                            <div id="loginError" class="auth-err" style="display:none;"></div>
+                        </form>
+                        <div class="auth-switch">
+                            <p>New store or joining? <a href="login.html">Go to full login page</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══ HELPER FUNCTIONS ═══
+        function togglePwd(id, btn) { const i = document.getElementById(id); const ic = btn.querySelector('i'); if (i.type === 'password') { i.type = 'text'; ic.classList.replace('fa-eye', 'fa-eye-slash'); } else { i.type = 'password'; ic.classList.replace('fa-eye-slash', 'fa-eye'); } }
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            const layout = document.querySelector('.app-layout');
+            if (layout) layout.classList.remove('authenticated');
+        }
+        function hideLoginScreen() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            const layout = document.querySelector('.app-layout');
+            if (layout) layout.classList.add('authenticated');
+            applyRoleRestrictions();
+            displayStoreInfo();
+        }
+
+        function applyRoleRestrictions() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('invexa_user') || '{}');
+                const name = userData.fullName || 'User';
+                const el = document.getElementById('userName'); if (el) el.textContent = name;
+                const ini = document.getElementById('userInitial'); if (ini) ini.textContent = name.charAt(0).toUpperCase();
+                const rl = document.getElementById('userRole'); if (rl) rl.textContent = (userData.role || 'staff').charAt(0).toUpperCase() + (userData.role || 'staff').slice(1);
+
+                const role = (userData.role || 'staff').toLowerCase();
+                document.querySelectorAll('.role-restricted').forEach(el => el.style.display = '');
+
+                if (role === 'staff') {
+                    ['addProductBtn', 'stockAdjustBtn', 'exportDataBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
+                    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+                        const section = link.getAttribute('data-section');
+                        if (['categories', 'suppliers'].includes(section)) { link.closest('li').style.display = 'none'; }
+                    });
+                }
+            } catch (e) { console.error('Role error:', e); }
+        }
+
+        function displayStoreInfo() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('invexa_user') || '{}');
+                const storeNameEl = document.getElementById('sidebarStoreName');
+                if (storeNameEl && userData.storeName) {
+                    storeNameEl.textContent = userData.storeName;
+                    storeNameEl.style.display = 'block';
+                }
+            } catch (e) { }
+        }
+
+        // ═══ THEME TOGGLE ═══
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('invexa_theme', theme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+        (function () {
+            const saved = localStorage.getItem('invexa_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        // ═══ LOGIN FORM HANDLER (email-based) ═══
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); const btn = document.getElementById('loginBtn'); const err = document.getElementById('loginError'); err.style.display = 'none';
+            btn.querySelector('.btn-text').style.display = 'none'; btn.querySelector('.btn-loader').style.display = 'inline'; btn.disabled = true;
+            try {
+                let res;
+                try { res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('loginEmail').value.trim(), password: document.getElementById('loginPassword').value }) }); }
+                catch (fetchErr) { throw new Error('Server not reachable. Please ensure the server is running.'); }
+                const data = await res.json();
+                if (data.requiresVerification) { window.location.href = 'login.html'; return; }
+                if (!res.ok || !data.success) { throw new Error(data.error || 'Login failed'); }
+                localStorage.setItem('invexa_token', data.token); localStorage.setItem('invexa_user', JSON.stringify(data.user));
+                btn.classList.add('success'); btn.querySelector('.btn-loader').innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => { hideLoginScreen(); window.location.reload(); }, 600);
+            } catch (er) { err.textContent = er.message || 'Login failed'; err.style.display = 'block'; btn.querySelector('.btn-text').style.display = 'inline'; btn.querySelector('.btn-loader').style.display = 'none'; btn.disabled = false; btn.classList.add('shake'); setTimeout(() => btn.classList.remove('shake'), 500); }
+        });
+
+        // ═══ AUTH GUARD ═══
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = localStorage.getItem('invexa_token');
+            if (!token) { showLoginScreen(); return; }
+            fetch('/api/auth/verify', { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(r => r.json())
+                .then(d => { if (!d.valid) { localStorage.removeItem('invexa_token'); localStorage.removeItem('invexa_user'); showLoginScreen(); } else { hideLoginScreen(); } })
+                .catch(() => { showLoginScreen(); });
+        });
+    </script>
+    </head>
+
+    <body>
+        <div class="app-layout">
+            <!-- Sidebar Navigation -->
+            <nav class="sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-shopping-cart"></i>
+                    <div>
+                        <span>InveXa sTacK</span>
+                        <div id="sidebarStoreName"
+                            style="display:none;font-size:0.7rem;color:rgba(255,255,255,0.45);font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
+                        </div>
+                    </div>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="#" class="nav-link active" data-section="dashboard"><i
+                                class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+                    <li><a href="#" class="nav-link" data-section="products"><i class="fas fa-boxes"></i>Real-time
+                            Stock</a></li>
+                    <li><a href="#" class="nav-link" data-section="alerts"><i
+                                class="fas fa-exclamation-triangle"></i>Low Stock Alerts</a></li>
+                    <li><a href="#" class="nav-link" data-section="reorder"><i class="fas fa-sync-alt"></i>Auto
+                            Reordering</a></li>
+                    <li><a href="#" class="nav-link" data-section="expiry"><i class="fas fa-calendar-times"></i>Expiry
+                            Tracking</a></li>
+                    <li><a href="#" class="nav-link" data-section="categories"><i class="fas fa-tags"></i>Category
+                            Management</a></li>
+                    <li><a href="#" class="nav-link" data-section="suppliers"><i class="fas fa-truck"></i>Supplier
+                            Management</a></li>
+                    <li><a href="#" class="nav-link" data-section="salesprofit"><i class="fas fa-chart-pie"></i>Sales &
+                            Profit</a></li>
+                    <li><a href="#" class="nav-link" data-section="valuation"><i class="fas fa-calculator"></i>Inventory
+                            Valuation</a></li>
+                    <li><a href="#" class="nav-link" data-section="prediction"><i class="fas fa-robot"></i>Prediction
+                            Window</a></li>
+                    <li><a href="#" class="nav-link" data-section="intelligence"><i
+                                class="fas fa-brain"></i>Intelligence</a></li>
+                </ul>
+                <div class="sidebar-footer"
+                    style="padding: 16px; border-top: 1px solid var(--color-border); margin-top: auto;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span id="connectionDot"
+                            style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;transition:background 0.3s;"></span>
+                        <span id="connectionLabel"
+                            style="font-size:0.8em;color:rgba(255,255,255,0.7);">Connecting...</span>
+                    </div>
+                    <!-- Theme Toggle -->
+                    <div class="theme-toggle" onclick="toggleTheme()" style="margin-bottom:12px;"
+                        title="Switch between dark and light mode">
+                        <i id="themeIcon" class="fas fa-moon"
+                            style="font-size:0.85rem;color:rgba(255,255,255,0.7);"></i>
+                        <div class="theme-toggle-track">
+                            <div class="theme-toggle-thumb"></div>
+                        </div>
+                        <span class="theme-toggle-label" style="color:rgba(255,255,255,0.5);">Theme</span>
+                    </div>
+                    <div
+                        style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--color-border);">
+                        <div
+                            style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#c9956b,#e0b088);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;color:#0a0a0f;flex-shrink:0;">
+                            <span id="userInitial">A</span>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div id="userName"
+                                style="font-size:0.85rem;font-weight:600;color:#f0ece4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                Admin</div>
+                            <div id="userRole"
+                                style="font-size:0.72rem;color:rgba(255,255,255,0.45);text-transform:capitalize;">admin
+                            </div>
+                        </div>
+                        <button onclick="logout()"
+                            style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#ef4444;cursor:pointer;padding:6px 10px;font-size:0.85rem;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;gap:5px;white-space:nowrap;"
+                            title="Logout" onmouseover="this.style.background='rgba(239,68,68,0.2)'"
+                            onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="section active">
+                    <div class="section-header">
+                        <div class="section-header-copy">
+                            <h1>Dashboard Overview</h1>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn--primary" id="recordSaleBtn">
+                                <i class="fas fa-cash-register"></i> Record Sale
+                            </button>
+                            <button class="btn btn--secondary" id="exportDataBtn">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                            <button class="btn btn--secondary" id="lowStockBell" onclick="app.showSection('alerts')"
+                                title="Low Stock Alerts" style="position:relative;">
+                                <i class="fas fa-bell"></i>
+                                <span id="lowStockBadge"
+                                    style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border-radius:50%;width:20px;height:20px;font-size:0.7rem;display:none;align-items:center;justify-content:center;font-weight:700;">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <!-- Financial Overview — blue accent -->
+                        <div class="stat-card stat-card--financial" onclick="app.showSection('valuation')" style="cursor:pointer;" title="Go to Inventory Valuation">
+                            <div class="stat-icon" style="background:rgba(59,130,246,0.14);color:#3b82f6;">
+                                <i class="fas fa-rupee-sign"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalValue">₹0</h3>
+                                <p>Total Inventory Value</p>
+                            </div>
+                            <i class="fas fa-arrow-right stat-arrow"></i>
+                        </div>
+
+                        <!-- Total Products — green accent -->
+                        <div class="stat-card stat-card--green" onclick="app.showSection('products')" style="cursor:pointer;" title="Go to Real-time Stock">
+                            <div class="stat-icon" style="background:rgba(22,163,74,0.14);color:#16a34a;">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalProducts">0</h3>
+                                <p>Total Products</p>
+                            </div>
+                            <i class="fas fa-arrow-right stat-arrow"></i>
+                        </div>
+
+                        <!-- Low Stock Items — amber accent -->
+                        <div class="stat-card stat-card--amber" onclick="app.showSection('alerts')" style="cursor:pointer;" title="Go to Low Stock Alerts">
+                            <div class="stat-icon" style="background:rgba(217,119,6,0.14);color:#d97706;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="lowStockCount">0</h3>
+                                <p>Low Stock Items</p>
+                            </div>
+                            <i class="fas fa-arrow-right stat-arrow"></i>
+                        </div>
+
+                        <!-- Expiring Soon — red accent -->
+                        <div class="stat-card stat-card--red" onclick="app.showSection('expiry')" style="cursor:pointer;" title="Go to Expiry Tracking">
+                            <div class="stat-icon" style="background:rgba(220,38,38,0.14);color:#dc2626;">
+                                <i class="fas fa-calendar-times"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="expiringCount">0</h3>
+                                <p>Expiring Soon</p>
+                            </div>
+                            <i class="fas fa-arrow-right stat-arrow"></i>
+                        </div>
+                    </div>
+
+                    <!-- S2: Needs Attention Banner -->
+                    <div id="needsAttentionBanner" class="needs-attention-banner" style="display:none;"></div>
+
+                    <div class="chart-grid">
+                        <div class="chart-container">
+                            <h3>Sales Trend (Last 7 Days)</h3>
+                            <p class="dashboard-panel-note">Monitor recent revenue movement and identify daily performance patterns.</p>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="salesChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Category Distribution</h3>
+                            <p class="dashboard-panel-note">See which product categories contribute the most to your current stock mix.</p>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Calendar Heatmap -->
+                    <div class="chart-container dashboard-calendar-card" style="margin-top:20px;">
+                        <h3><i class="fas fa-calendar-alt" style="margin-right:8px;color:#8b5cf6;"></i>Sales Activity
+                            Calendar</h3>
+                        <p class="dashboard-panel-note">Spot high and low activity days at a glance to improve replenishment timing.</p>
+                        <div id="salesCalendar" style="margin-top:16px;"></div>
+                    </div>
+                </section>
+
+                <!-- Products Section -->
+                <section id="products" class="section">
+                    <div class="section-header">
+                        <h1>Real-time Stock Management</h1>
+                        <div class="action-buttons">
+                            <button class="btn btn--primary" id="addProductBtn">
+                                <i class="fas fa-plus"></i> Add Product
+                            </button>
+                            <button class="btn btn--secondary" id="stockAdjustBtn">
+                                <i class="fas fa-edit"></i> Adjust Stock
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="productSearch" placeholder="Search products...">
+                        </div>
+                        <select id="categoryFilter" class="form-control">
+                            <option value="">All Categories</option>
+                        </select>
+                        <select id="stockFilter" class="form-control">
+                            <option value="">All Stock Levels</option>
+                            <option value="low">Low Stock</option>
+                            <option value="medium">Medium Stock</option>
+                            <option value="high">High Stock</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Stock</th>
+                                    <th>Cost Price</th>
+                                    <th>Selling Price</th>
+                                    <th>Supplier</th>
+                                    <th>Expiry</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Low Stock Alerts Section -->
+                <section id="alerts" class="section">
+                    <div class="section-header">
+                        <h1>Low Stock Alerts</h1>
+                    </div>
+                    <div id="alertsList" class="alerts-container"></div>
+                </section>
+
+                <!-- Auto Reordering Section -->
+                <section id="reorder" class="section">
+                    <div class="section-header">
+                        <h1>Auto Reordering</h1>
+                    </div>
+                    <div id="reorderList" class="reorder-container"></div>
+                </section>
+
+                <!-- Expiry Tracking Section -->
+                <section id="expiry" class="section">
+                    <div class="section-header">
+                        <h1>Expiry Tracking</h1>
+                    </div>
+                    <div id="expiryList" class="expiry-container"></div>
+                </section>
+
+                <!-- Category Management Section -->
+                <section id="categories" class="section">
+                    <div class="section-header">
+                        <h1>Category Management</h1>
+                        <button class="btn btn--primary" id="addCategoryBtn">
+                            <i class="fas fa-plus"></i> Add Category
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Total Products</th>
+                                    <th>Total Value</th>
+                                    <th>Avg Margin</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ═══════ Unified Sales & Profit Hub ═══════ -->
+                <section id="salesprofit" class="section">
+                    <div class="section-header">
+                        <h1><i class="fas fa-chart-pie" style="margin-right:10px;"></i>Sales & Profit Hub</h1>
+                    </div>
+
+                    <!-- Sub-tabs -->
+                    <div class="analytics-tabs" id="spTabs">
+                        <button class="tab-btn active" data-sptab="revenue">📈 Revenue Overview</button>
+                        <button class="tab-btn" data-sptab="profitbreakdown">💰 Profit Breakdown</button>
+                        <button class="tab-btn" data-sptab="soldproducts">🧾 Sold Products</button>
+                    </div>
+
+                    <!-- ── Revenue Overview Tab ── -->
+                    <div id="sp-revenue" class="sp-tab-content active">
+                        <div class="stats-grid" style="margin-bottom:24px;">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(0,102,255,0.12);color:#0066FF;"><i
+                                        class="fas fa-rupee-sign"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spTotalRevenue">₹0</h3>
+                                    <p>Total Revenue (30d)</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(16,185,129,0.12);color:#10b981;"><i
+                                        class="fas fa-chart-line"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spAvgDaily">₹0</h3>
+                                    <p>Avg Daily Sales</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><i
+                                        class="fas fa-trophy"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spBestDay">-</h3>
+                                    <p>Best Sales Day</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(139,92,246,0.12);color:#8b5cf6;"><i
+                                        class="fas fa-receipt"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spTotalTxns">0</h3>
+                                    <p>Total Transactions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>Daily Sales Revenue (Last 30 Days)</h3>
+                                <div style="position:relative;height:350px;"><canvas id="spRevenueChart"></canvas></div>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Sales by Category</h3>
+                                <div style="position:relative;height:350px;"><canvas id="spCategorySalesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Profit Breakdown Tab ── -->
+                    <div id="sp-profitbreakdown" class="sp-tab-content" style="display:none;">
+                        <div class="stats-grid" style="margin-bottom:24px;">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(16,185,129,0.12);color:#10b981;"><i
+                                        class="fas fa-coins"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spTotalProfit">₹0</h3>
+                                    <p>Total Profit</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(0,102,255,0.12);color:#0066FF;"><i
+                                        class="fas fa-percentage"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spAvgMargin">0%</h3>
+                                    <p>Avg Profit Margin</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><i
+                                        class="fas fa-star"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spTopCategory">-</h3>
+                                    <p>Most Profitable Category</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><i
+                                        class="fas fa-arrow-down"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="spLowestMargin">-</h3>
+                                    <p>Lowest Margin Product</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>Profit by Category</h3>
+                                <div style="position:relative;height:350px;"><canvas id="spProfitDoughnut"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Revenue vs Cost vs Profit</h3>
+                                <div style="position:relative;height:350px;"><canvas id="spProfitBarChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-container" style="margin-top:24px;">
+                            <h3 style="margin-bottom:12px;"><i class="fas fa-table"
+                                    style="margin-right:8px;"></i>Product Profitability</h3>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Cost</th>
+                                        <th>Selling Price</th>
+                                        <th>Margin %</th>
+                                        <th>Stock</th>
+                                        <th>Potential Profit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="spProfitTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ── Sold Products Tab ── -->
+                    <div id="sp-soldproducts" class="sp-tab-content" style="display:none;">
+                        <div class="filters-bar" style="margin-bottom:16px;">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="soldSearch" class="form-control" placeholder="Search sales..."
+                                    oninput="app.renderSoldProducts()">
+                            </div>
+                            <div class="search-box">
+                                <i class="fas fa-calendar"></i>
+                                <select id="soldDays" class="form-control" onchange="app.loadSoldProducts()">
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30" selected>Last 30 Days</option>
+                                    <option value="90">Last 90 Days</option>
+                                    <option value="365">Last Year</option>
+                                </select>
+                            </div>
+                            <button class="btn btn--primary" onclick="app.showSaleModal()"><i
+                                    class="fas fa-cash-register"></i> Record Sale</button>
+                            <button class="btn btn--secondary" onclick="app.exportSoldJSON()"><i
+                                    class="fas fa-file-code"></i> Export JSON</button>
+                            <button class="btn btn--secondary" onclick="app.exportSoldPDF()"><i
+                                    class="fas fa-file-pdf"></i> Export PDF</button>
+                        </div>
+                        <div class="stats-grid" style="margin-bottom:16px;">
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(0,102,255,0.12);color:#0066FF;"><i
+                                        class="fas fa-shopping-bag"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="soldTotalItems">0</h3>
+                                    <p>Items Sold</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:rgba(16,185,129,0.12);color:#10b981;"><i
+                                        class="fas fa-rupee-sign"></i></div>
+                                <div class="stat-info">
+                                    <h3 id="soldTotalRevenue">₹0</h3>
+                                    <p>Revenue</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Date</th>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="soldTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Inventory Valuation Section -->
+                <section id="valuation" class="section">
+                    <div class="section-header">
+                        <h1>Inventory Valuation</h1>
+                    </div>
+                    <div class="valuation-summary" id="valuationSummary"></div>
+                </section>
+
+                <!-- Supplier Management Section -->
+                <section id="suppliers" class="section">
+                    <div class="section-header">
+                        <h1>Supplier Management</h1>
+                        <button class="btn btn--primary" id="addSupplierBtn">
+                            <i class="fas fa-plus"></i> Add Supplier
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Contact</th>
+                                    <th>Phone</th>
+                                    <th>Reliability</th>
+                                    <th>Lead Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliersTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Prediction Window Section -->
+                <section id="prediction" class="section">
+                    <div class="section-header">
+                        <h1>AI Prediction Analytics</h1>
+                        <div class="action-buttons">
+                            <button class="btn btn--primary" id="runPredictionsBtn">
+                                <i class="fas fa-brain"></i> Run Advanced Analytics
+                            </button>
+                            <button class="btn btn--secondary" id="exportPredictionsBtn">
+                                <i class="fas fa-download"></i> Export Analytics
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Controls -->
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fas fa-calendar"></i>
+                            <select id="predictionPeriod" class="form-control">
+                                <option value="7">Next 7 Days</option>
+                                <option value="30" selected>Next 30 Days</option>
+                                <option value="90">Next 90 Days</option>
+                                <option value="180">Next 6 Months</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-chart-line"></i>
+                            <select id="predictionType" class="form-control">
+                                <option value="sales">Sales Forecast</option>
+                                <option value="inventory">Inventory Prediction</option>
+                                <option value="seasonal">Seasonal Trends</option>
+                                <option value="anomaly">Anomaly Detection</option>
+                                <option value="procurement">Procurement Planning</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-layer-group"></i>
+                            <select id="aggregationLevel" class="form-control">
+                                <option value="daily">Daily Aggregation</option>
+                                <option value="weekly" selected>Weekly Aggregation</option>
+                                <option value="monthly">Monthly Aggregation</option>
+                                <option value="quarterly">Quarterly Aggregation</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-brain"></i>
+                            <select id="forecastModel" class="form-control">
+                                <option value="linear">Linear Regression</option>
+                                <option value="sarima" selected>SARIMA Model</option>
+                                <option value="exponential">Exponential Smoothing</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Analytics Tabs -->
+                    <div class="analytics-tabs">
+                        <button class="tab-btn active" data-tab="forecasts">Forecasts</button>
+                        <button class="tab-btn" data-tab="anomalies">Anomalies</button>
+                        <button class="tab-btn" data-tab="seasonal">Seasonal Analysis</button>
+                        <button class="tab-btn" data-tab="procurement">Procurement</button>
+                        <button class="tab-btn" data-tab="strategy">Business Strategy</button>
+                    </div>
+
+                    <!-- Forecasts Tab -->
+                    <div id="forecasts-tab" class="analytics-tab-content active">
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>SARIMA Sales Forecast</h3>
+                                <canvas id="salesForecastChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Inventory Levels Prediction</h3>
+                                <canvas id="inventoryPredictionChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Historical Sales Aggregation</h3>
+                                <canvas id="historicalAggregationChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Demand Prediction</h3>
+                                <canvas id="demandPredictionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomalies Tab -->
+                    <div id="anomalies-tab" class="analytics-tab-content">
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>Anomaly Detection</h3>
+                                <canvas id="anomalyDetectionChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Outlier Analysis</h3>
+                                <canvas id="outlierAnalysisChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Trend Deviation</h3>
+                                <canvas id="trendDeviationChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Confidence Intervals</h3>
+                                <canvas id="confidenceIntervalsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seasonal Analysis Tab -->
+                    <div id="seasonal-tab" class="analytics-tab-content">
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>Seasonal Decomposition</h3>
+                                <canvas id="seasonalDecompositionChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Seasonal Adjustment Factors</h3>
+                                <canvas id="seasonalAdjustmentChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Year-over-Year Comparison</h3>
+                                <canvas id="yearOverYearChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Seasonal Index</h3>
+                                <canvas id="seasonalIndexChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Procurement Tab -->
+                    <div id="procurement-tab" class="analytics-tab-content">
+                        <div class="chart-grid">
+                            <div class="chart-container">
+                                <h3>Procurement Planning</h3>
+                                <canvas id="procurementPlanningChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Reorder Point Analysis</h3>
+                                <canvas id="reorderPointChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Lead Time Optimization</h3>
+                                <canvas id="leadTimeOptimizationChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <h3>Supplier Performance</h3>
+                                <canvas id="supplierPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Business Strategy Tab -->
+                    <div id="strategy-tab" class="analytics-tab-content">
+                        <!-- Dynamic Insights (populated by JS from real data) -->
+                        <div id="dynamicStrategyInsights" style="margin-bottom:24px;">
+                            <div style="text-align:center;padding:40px;color:var(--color-text-secondary);">
+                                <i class="fas fa-brain"
+                                    style="font-size:2.5rem;opacity:0.3;margin-bottom:12px;display:block;"></i>
+                                <p>Click <strong>"Run Advanced Analytics"</strong> to generate business strategy from
+                                    your real inventory data</p>
+                            </div>
+                        </div>
+
+                        <!-- Real-data strategy cards populated by runAdvancedAnalytics() -->
+                        <div id="realStrategyCards" style="margin-bottom:24px;">
+                            <div style="text-align:center;padding:40px 20px;color:var(--color-text-secondary);">
+                                <i class="fas fa-robot"
+                                    style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:12px;"></i>
+                                <p>Click <strong>"Run Advanced Analytics"</strong> to generate personalised sales-boost
+                                    recommendations from your live inventory &amp; sales data.</p>
+                            </div>
+                        </div>
+
+                        <!-- Gemini AI Business Plan -->
+                        <div class="card"
+                            style="border:1.5px solid rgba(66,133,244,0.35);background:linear-gradient(135deg,rgba(66,133,244,0.06),rgba(52,168,83,0.05));">
+                            <div class="card__header"
+                                style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                                <h3 style="margin:0;"><i class="fas fa-robot"
+                                        style="color:#4285F4;margin-right:8px;"></i>AI Business Plan <span
+                                        style="font-size:0.7rem;font-weight:500;color:#4285F4;background:rgba(66,133,244,0.1);padding:2px 8px;border-radius:20px;margin-left:6px;">Powered
+                                        by Gemini</span></h3>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                    <input type="password" id="geminiApiKey" class="form-control"
+                                        placeholder="Paste Gemini API key (free at ai.google.dev)"
+                                        style="width:280px;font-size:0.8rem;"
+                                        oninput="localStorage.setItem('gemini_api_key',this.value)">
+                                    <button class="btn btn--primary" onclick="app.generateAIStrategy()"
+                                        id="aiStrategyBtn"
+                                        style="background:linear-gradient(135deg,#4285F4,#34A853);border:none;">
+                                        <i class="fas fa-sparkles"></i> Generate AI Plan
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card__body">
+                                <p style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:12px;">
+                                    <i class="fas fa-info-circle"></i> Get a free API key at <a
+                                        href="https://ai.google.dev" target="_blank"
+                                        style="color:#4285F4;">ai.google.dev</a> → "Get API key" → it's free, no credit
+                                    card needed.
+                                    Run Advanced Analytics first, then click Generate AI Plan.
+                                </p>
+                                <div id="aiStrategyOutput" style="min-height:60px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Insights -->
+                    <div class="prediction-insights">
+                        <div class="card">
+                            <div class="card__header">
+                                <h3>Advanced AI Analytics</h3>
+                            </div>
+                            <div class="card__body">
+                                <div id="predictionInsights">
+                                    <p class="placeholder-content">
+                                        <i class="fas fa-robot"></i>
+                                        Click "Run Advanced Analytics" to generate comprehensive insights and forecasts.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Intelligence Section -->
+                <section id="intelligence" class="section">
+                    <div class="ia-main" style="padding:0;max-width:100%;">
+                        <!-- Controls Bar -->
+                        <div
+                            style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 0 10px;">
+                            <div>
+                                <h1 style="margin:0;font-size:1.5rem;font-weight:800;color:var(--color-text-primary);">
+                                    <i class="fas fa-brain" style="color:#0066FF;"></i> InveXa Intelligence
+                                </h1>
+                                <p style="margin:2px 0 0;font-size:0.82rem;color:var(--color-text-secondary);">Inventory
+                                    Prediction &amp; Insight Engine</p>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <label
+                                        style="font-size:0.65rem;color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;">Analysis
+                                        Period</label>
+                                    <select id="periodSelect" class="form-control"
+                                        style="padding:5px 10px;font-size:0.82rem;min-width:120px;">
+                                        <option value="30">Last 30 Days</option>
+                                        <option value="60">Last 60 Days</option>
+                                        <option value="90" selected>Last 90 Days</option>
+                                        <option value="180">Last 180 Days</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <label
+                                        style="font-size:0.65rem;color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;">Forecast
+                                        Horizon</label>
+                                    <select id="forecastSelect" class="form-control"
+                                        style="padding:5px 10px;font-size:0.82rem;min-width:100px;">
+                                        <option value="14">14 Days</option>
+                                        <option value="30" selected>30 Days</option>
+                                        <option value="60">60 Days</option>
+                                        <option value="90">90 Days</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <label
+                                        style="font-size:0.65rem;color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;">Category</label>
+                                    <select id="categorySelect" class="form-control"
+                                        style="padding:5px 10px;font-size:0.82rem;min-width:130px;">
+                                        <option value="all">All Categories</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn--primary" id="runAnalysisBtn" style="margin-top:14px;">
+                                    <i class="fas fa-play"></i> Run Analysis
+                                </button>
+                                <span id="lastUpdated"
+                                    style="font-size:0.72rem;color:var(--color-text-secondary);margin-top:14px;">—</span>
+                            </div>
+                        </div>
+
+                        <!-- KPI Row -->
+                        <div class="kpi-row">
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background:rgba(0,102,255,0.12);color:#0066FF;"><i
+                                        class="fas fa-chart-line"></i></div>
+                                <div class="kpi-body">
+                                    <div class="kpi-label">Projected Revenue (30d)</div>
+                                    <div class="kpi-value" id="kpiRevenue">—</div>
+                                    <div class="kpi-delta" id="kpiRevenueDelta"></div>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><i
+                                        class="fas fa-exclamation-triangle"></i></div>
+                                <div class="kpi-body">
+                                    <div class="kpi-label">Stockout Risk Items</div>
+                                    <div class="kpi-value" id="kpiStockout">—</div>
+                                    <div class="kpi-delta" id="kpiStockoutDelta"></div>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><i
+                                        class="fas fa-trash-alt"></i></div>
+                                <div class="kpi-body">
+                                    <div class="kpi-label">Waste / Overstock Risk</div>
+                                    <div class="kpi-value" id="kpiWaste">—</div>
+                                    <div class="kpi-delta" id="kpiWasteDelta"></div>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background:rgba(34,197,94,0.12);color:#22c55e;"><i
+                                        class="fas fa-arrow-trend-up"></i></div>
+                                <div class="kpi-body">
+                                    <div class="kpi-label">Growth Opportunities</div>
+                                    <div class="kpi-value" id="kpiOpportunity">—</div>
+                                    <div class="kpi-delta" id="kpiOpportunityDelta"></div>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-icon" style="background:rgba(168,85,247,0.12);color:#a855f7;"><i
+                                        class="fas fa-percent"></i></div>
+                                <div class="kpi-body">
+                                    <div class="kpi-label">Avg Profit Margin</div>
+                                    <div class="kpi-value" id="kpiMargin">—</div>
+                                    <div class="kpi-delta" id="kpiMarginDelta"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trend + Seasonal Row -->
+                        <div class="chart-row">
+                            <div class="ia-card ia-card--large">
+                                <div class="ia-card__header">
+                                    <div>
+                                        <h2 class="ia-card__title"><i class="fas fa-chart-area"></i> Sales Trend &amp;
+                                            Forecast</h2>
+                                        <p class="ia-card__sub">Historical performance with AI-projected forecast band
+                                        </p>
+                                    </div>
+                                    <div class="chart-legend"><span class="legend-dot"
+                                            style="background:#0066FF;"></span> Historical <span class="legend-dot"
+                                            style="background:#22c55e;"></span> Forecast <span class="legend-dot"
+                                            style="background:rgba(34,197,94,0.2);border:1px dashed #22c55e;"></span>
+                                        Confidence Band</div>
+                                </div>
+                                <div class="ia-card__body"><canvas id="trendChart" height="90"></canvas></div>
+                            </div>
+                            <div class="ia-card ia-card--small">
+                                <div class="ia-card__header">
+                                    <div>
+                                        <h2 class="ia-card__title"><i class="fas fa-calendar-alt"></i> Seasonal Pattern
+                                        </h2>
+                                        <p class="ia-card__sub">Sales index by month (1.0 = average)</p>
+                                    </div>
+                                </div>
+                                <div class="ia-card__body"><canvas id="seasonalChart" height="200"></canvas></div>
+                            </div>
+                        </div>
+
+                        <!-- Category + Velocity + Bubble Row -->
+                        <div class="chart-row chart-row--3col">
+                            <div class="ia-card">
+                                <div class="ia-card__header">
+                                    <h2 class="ia-card__title"><i class="fas fa-tags"></i> Category Performance</h2>
+                                </div>
+                                <div class="ia-card__body"><canvas id="iaCategoryChart" height="220"></canvas></div>
+                            </div>
+                            <div class="ia-card">
+                                <div class="ia-card__header">
+                                    <h2 class="ia-card__title"><i class="fas fa-tachometer-alt"></i> Sales Velocity
+                                        Ranking</h2>
+                                </div>
+                                <div class="ia-card__body"><canvas id="velocityChart" height="220"></canvas></div>
+                            </div>
+                            <div class="ia-card">
+                                <div class="ia-card__header">
+                                    <h2 class="ia-card__title"><i class="fas fa-balance-scale"></i> Margin vs Demand
+                                    </h2>
+                                </div>
+                                <div class="ia-card__body"><canvas id="bubbleChart" height="220"></canvas></div>
+                            </div>
+                        </div>
+
+                        <!-- Product Intelligence Table -->
+                        <div class="ia-card ia-card--full">
+                            <div class="ia-card__header">
+                                <div>
+                                    <h2 class="ia-card__title"><i class="fas fa-lightbulb"></i> Product Intelligence —
+                                        Action Recommendations</h2>
+                                    <p class="ia-card__sub">AI-driven recommendations based on sales velocity, trend,
+                                        margin, stockout risk and seasonal patterns</p>
+                                </div>
+                                <div class="action-filter">
+                                    <button class="filter-btn active" data-filter="all">All</button>
+                                    <button class="filter-btn increase" data-filter="increase"><i
+                                            class="fas fa-arrow-up"></i> Increase</button>
+                                    <button class="filter-btn reduce" data-filter="reduce"><i
+                                            class="fas fa-arrow-down"></i> Reduce</button>
+                                    <button class="filter-btn replace" data-filter="replace"><i class="fas fa-sync"></i>
+                                        Replace</button>
+                                    <button class="filter-btn remove" data-filter="remove"><i class="fas fa-times"></i>
+                                        Remove</button>
+                                </div>
+                            </div>
+                            <div class="ia-card__body">
+                                <div class="table-wrap">
+                                    <table class="ia-table" id="productTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Category</th>
+                                                <th>Action</th>
+                                                <th>Velocity <small>(u/day)</small></th>
+                                                <th>Trend</th>
+                                                <th>Margin %</th>
+                                                <th>Stock</th>
+                                                <th>Stockout In</th>
+                                                <th>Seasonal Peak</th>
+                                                <th>Reason</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="productTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Insight Cards -->
+                        <div class="insights-row" id="insightCards"></div>
+                    </div>
+
+                    <!-- Loading Overlay for Intelligence -->
+                    <div class="ia-loading hidden" id="loadingOverlay">
+                        <div class="ia-loading__box">
+                            <div class="ia-spinner"></div>
+                            <div class="ia-loading__text">Analysing inventory data...</div>
+                            <div class="ia-loading__sub" id="loadingStep">Initialising</div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Product Modal -->
+        <div id="productModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="productModalTitle">Add Product</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="productForm" class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="productName" class="form-label">Product Name</label>
+                            <input type="text" id="productName" name="name" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productCategory" class="form-label">Category</label>
+                            <select id="productCategory" name="category" class="form-control" required>
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currentStock" class="form-label">Current Stock</label>
+                            <input type="number" id="currentStock" name="currentStock" class="form-control" min="0"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="minimumStock" class="form-label">Minimum Stock</label>
+                            <input type="number" id="minimumStock" name="minimumStock" class="form-control" min="0"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxStock" class="form-label">Maximum Stock</label>
+                            <input type="number" id="maxStock" name="maxStock" class="form-control" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="costPrice" class="form-label">Cost Price (₹)</label>
+                            <input type="number" id="costPrice" name="costPrice" class="form-control" step="0.01"
+                                min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sellingPrice" class="form-label">Selling Price (₹)</label>
+                            <input type="number" id="sellingPrice" name="sellingPrice" class="form-control" step="0.01"
+                                min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productSupplier" class="form-label">Supplier</label>
+                            <select id="productSupplier" name="supplier" class="form-control" required>
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiryDate" class="form-label">Expiry Date</label>
+                            <input type="date" id="expiryDate" name="expiryDate" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="batchNumber" class="form-label">Batch Number</label>
+                            <input type="text" id="batchNumber" name="batchNumber" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" id="location" name="location" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="salesVelocity" class="form-label">Sales Velocity (per day)</label>
+                            <input type="number" id="salesVelocity" name="salesVelocity" class="form-control" min="0"
+                                value="5">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productBarcode" class="form-label">Barcode</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="productBarcode" name="barcode" class="form-control">
+                                <button type="button" class="btn btn--secondary" id="scanBarcodeBtn">
+                                    <i class="fas fa-camera"></i> Scan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn--primary">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Category Modal -->
+        <div id="categoryModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="categoryModalTitle">Add Category</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="categoryForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="categoryName" class="form-label">Category Name</label>
+                        <input type="text" id="categoryName" name="name" class="form-control" required>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn--primary">Save Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Supplier Modal -->
+        <div id="supplierModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="supplierModalTitle">Add Supplier</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="supplierForm" class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="supplierName" class="form-label">Supplier Name</label>
+                            <input type="text" id="supplierName" name="name" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="supplierContact" class="form-label">Contact Person</label>
+                            <input type="text" id="supplierContact" name="contact" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="supplierPhone" class="form-label">Phone</label>
+                            <input type="tel" id="supplierPhone" name="phone" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="supplierEmail" class="form-label">Email</label>
+                            <input type="email" id="supplierEmail" name="email" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="avgLeadTime" class="form-label">Average Lead Time (days)</label>
+                            <input type="number" id="avgLeadTime" name="avgLeadTime" class="form-control" min="1"
+                                value="3">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reliability" class="form-label">Reliability Score (%)</label>
+                            <input type="number" id="reliability" name="reliability" class="form-control" min="0"
+                                max="100" value="90">
+                        </div>
+
+                        <!-- Collapsible Payment & Banking Details -->
+                        <div class="collapsible-section" id="supplierPaymentSection">
+                            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                                <span>💳 Payment & Banking Details (Optional)</span>
+                                <i class="fas fa-chevron-down collapsible-chevron"></i>
+                            </div>
+                            <div class="collapsible-body">
+                                <div class="form-group">
+                                    <label for="bankAccountNumber" class="form-label">Bank Account Number</label>
+                                    <input type="text" id="bankAccountNumber" name="bankAccountNumber" class="form-control" placeholder="Account number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="ifscCode" class="form-label">IFSC Code</label>
+                                    <input type="text" id="ifscCode" name="ifscCode" class="form-control ifsc-upper" placeholder="e.g. SBIN0001234">
+                                </div>
+                                <div class="form-group">
+                                    <label for="upiId" class="form-label">UPI ID</label>
+                                    <input type="text" id="upiId" name="upiId" class="form-control" placeholder="e.g. supplier@upi">
+                                </div>
+                                <div class="form-group">
+                                    <label for="paymentNotes" class="form-label">Payment Notes</label>
+                                    <textarea id="paymentNotes" name="paymentNotes" class="form-control" placeholder="e.g. preferred payment day, terms" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn--primary">Save Supplier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sale Modal -->
+        <div id="saleModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Record Sale</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="saleForm" class="modal-body">
+                    <!-- Barcode Quick-Lookup -->
+                    <div
+                        style="background:var(--color-surface-2,rgba(0,102,255,0.06));border:1.5px solid rgba(0,102,255,0.18);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+                        <label class="form-label" style="font-weight:700;color:var(--color-primary,#0066FF);">
+                            <i class="fas fa-barcode" style="margin-right:6px;"></i>Quick Barcode Lookup
+                        </label>
+                        <div style="display:flex;gap:8px;margin-top:6px;">
+                            <input type="text" id="saleBarcodeInput" class="form-control"
+                                placeholder="Scan or type barcode number…"
+                                style="font-family:monospace;letter-spacing:1px;" autocomplete="off">
+                            <button type="button" class="btn btn--secondary" onclick="app.scanSaleBarcode()"
+                                title="Use camera scanner">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            <button type="button" class="btn btn--primary" onclick="app.lookupSaleBarcode()"
+                                id="barcodeLookupBtn">
+                                <i class="fas fa-search"></i> Find
+                            </button>
+                        </div>
+                        <div id="barcodeLookupResult"
+                            style="margin-top:8px;font-size:0.82rem;color:var(--color-text-secondary);"></div>
+                    </div>
+
+                    <div id="saleItems">
+                        <div class="sale-item">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Product</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <select name="product" class="form-control sale-product" required>
+                                            <option value="">Select Product</option>
+                                        </select>
+                                        <button type="button" class="btn btn--secondary scan-product-btn"
+                                            title="Scan barcode">
+                                            <i class="fas fa-camera"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" name="quantity" class="form-control sale-quantity" min="1"
+                                        required>
+                                    <small class="sale-stock-hint"
+                                        style="color:#10b981;font-size:0.75rem;margin-top:2px;display:block;"></small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Price per Unit (₹)</label>
+                                    <input type="number" name="price" class="form-control sale-price" step="0.01"
+                                        min="0" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Subtotal</label>
+                                    <input type="text" class="form-control sale-subtotal" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0;">
+                        <div class="sale-btn-group">
+                            <button type="button" class="btn sale-btn-add" id="addSaleItemBtn">
+                                <i class="fas fa-plus-circle"></i> Add Item
+                            </button>
+                            <button type="button" class="btn sale-btn-remove" id="removeSaleItemBtn" onclick="app.removeLastSaleItem()">
+                                <i class="fas fa-minus-circle"></i> Remove Last
+                            </button>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold;">
+                            Total: ₹<span id="saleTotal">0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn--primary"><i class="fas fa-cash-register"></i> Record
+                            Sale</button>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stock Adjustment Modal -->
+        <div id="stockAdjustModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Stock Adjustment</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="stockAdjustForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="adjustProduct" class="form-label">Product</label>
+                        <select id="adjustProduct" name="product" class="form-control" required>
+                            <option value="">Select Product</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currentStockDisplay" class="form-label">Current Stock</label>
+                        <input type="text" id="currentStockDisplay" class="form-control" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjustmentType" class="form-label">Adjustment Type</label>
+                        <select id="adjustmentType" name="type" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="increase">Increase Stock</option>
+                            <option value="decrease">Decrease Stock</option>
+                            <option value="set">Set Exact Amount</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjustmentQuantity" class="form-label">Quantity</label>
+                        <input type="number" id="adjustmentQuantity" name="quantity" class="form-control" min="0"
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjustmentReason" class="form-label">Reason</label>
+                        <select id="adjustmentReason" name="reason" class="form-control" required>
+                            <option value="">Select Reason</option>
+                            <option value="damaged">Damaged Goods</option>
+                            <option value="expired">Expired Items</option>
+                            <option value="theft">Theft/Loss</option>
+                            <option value="recount">Stock Recount</option>
+                            <option value="supplier">Supplier Return</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adjustmentNotes" class="form-label">Notes (Optional)</label>
+                        <textarea id="adjustmentNotes" name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn--primary">Adjust Stock</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Barcode Scanner Modal -->
+        <div id="barcodeScanModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-barcode" style="margin-right:8px;"></i>Barcode Scanner</h2>
+                    <button class="modal-close" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="barcode-scanner"
+                        style="width: 100%; height: 250px; position: relative; background: #000; border-radius: 8px; overflow: hidden;">
+                        <div class="scanner-overlay"></div>
+                        <div
+                            style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;text-align:center;font-size:0.85rem;opacity:0.7;">
+                            <i class="fas fa-camera" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            Camera initializing...
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 16px;">
+                        <p style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:12px;">Position the
+                            barcode in the center of the scanner</p>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                            <span style="flex:1;height:1px;background:var(--color-border);"></span>
+                            <span style="font-size:0.75rem;color:var(--color-text-secondary);font-weight:600;">OR ENTER
+                                MANUALLY</span>
+                            <span style="flex:1;height:1px;background:var(--color-border);"></span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="manualBarcodeInput" class="form-control"
+                                placeholder="Type barcode number here..."
+                                style="flex:1;font-size:1rem;padding:10px 14px;">
+                            <button type="button" class="btn btn--primary" id="manualBarcodeSubmit"
+                                onclick="app.submitManualBarcode()">
+                                <i class="fas fa-check"></i> OK
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn--secondary modal-close"
+                            style="margin-top:12px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Format Modal -->
+        <div id="exportModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 420px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-download" style="margin-right:8px;"></i>Export Data</h2>
+                    <button class="modal-close" onclick="app.closeExportModal()">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 24px;">
+                    <p style="margin-bottom: 20px; color: var(--color-text-secondary);">Choose the format you'd like to
+                        export your inventory data in:</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <button onclick="app.exportAsJSON()"
+                            style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 16px;border:2px solid var(--color-border);border-radius:12px;background:var(--color-surface);cursor:pointer;transition:all 0.2s;"
+                            onmouseover="this.style.borderColor='var(--color-primary)';this.style.background='var(--color-primary-light, #e8f4fd)'"
+                            onmouseout="this.style.borderColor='var(--color-border)';this.style.background='var(--color-surface)'">
+                            <i class="fas fa-file-code" style="font-size:2.5rem;color:#f59e0b;"></i>
+                            <div>
+                                <div style="font-weight:700;font-size:1.1rem;">JSON</div>
+                                <div style="font-size:0.8rem;color:var(--color-text-secondary);margin-top:4px;">Raw data
+                                    file<br>for developers</div>
+                            </div>
+                        </button>
+                        <button onclick="app.exportAsPDF()"
+                            style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 16px;border:2px solid var(--color-border);border-radius:12px;background:var(--color-surface);cursor:pointer;transition:all 0.2s;"
+                            onmouseover="this.style.borderColor='var(--color-primary)';this.style.background='var(--color-primary-light, #e8f4fd)'"
+                            onmouseout="this.style.borderColor='var(--color-border)';this.style.background='var(--color-surface)'">
+                            <i class="fas fa-file-pdf" style="font-size:2.5rem;color:#ef4444;"></i>
+                            <div>
+                                <div style="font-weight:700;font-size:1.1rem;">PDF</div>
+                                <div style="font-size:0.8rem;color:var(--color-text-secondary);margin-top:4px;">
+                                    Formatted report<br>for printing</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice / Receipt Modal -->
+        <div id="invoiceModal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content" style="max-width:520px;">
+                <div class="modal-header" style="background:linear-gradient(135deg,#0066FF,#10b981);color:#fff;">
+                    <h2><i class="fas fa-receipt" style="margin-right:8px;"></i>Sale Receipt</h2>
+                    <button class="modal-close"
+                        onclick="document.getElementById('invoiceModal').classList.add('hidden')"
+                        style="color:#fff;">&times;</button>
+                </div>
+                <div class="modal-body" id="invoiceBody" style="padding:24px;"></div>
+                <div class="modal-footer" style="padding:16px 24px;display:flex;gap:8px;">
+                    <button class="btn btn--primary" onclick="app.printInvoice()"><i class="fas fa-print"></i>
+                        Print</button>
+                    <button class="btn btn--secondary"
+                        onclick="document.getElementById('invoiceModal').classList.add('hidden')">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="analysis.js"></script>
+        <script src="app.js"></script>
+        <script>
+            // Logout function (shows integrated login screen)
+            function logout() {
+                localStorage.removeItem('invexa_token');
+                localStorage.removeItem('invexa_user');
+                showLoginScreen();
+            }
+
+            // Apply role restrictions on load (in case auth guard already passed)
+            applyRoleRestrictions();
+
+            // Low Stock Notification System
+            (function () {
+                function checkLowStock() {
+                    if (!window.app || !app.products) return;
+                    const lowItems = app.products.filter(p => p.currentStock <= (p.minStock || 10) && p.currentStock > 0);
+                    const badge = document.getElementById('lowStockBadge');
+                    if (badge) {
+                        if (lowItems.length > 0) {
+                            badge.textContent = lowItems.length;
+                            badge.style.display = 'flex';
+                            // Animate bell
+                            const bell = document.getElementById('lowStockBell');
+                            if (bell) { bell.style.animation = 'shake 0.5s'; setTimeout(() => bell.style.animation = '', 600); }
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+
+                    // Browser notification (only after first data load)
+                    if (lowItems.length > 0 && Notification.permission === 'granted') {
+                        new Notification('⚠️ InveXa Low Stock Alert', {
+                            body: `${lowItems.length} product(s) below reorder level:\n${lowItems.slice(0, 3).map(p => p.name).join(', ')}`,
+                            icon: 'logo.png'
+                        });
+                    }
+                }
+                // Request permission on load
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+                // Check every 30s
+                setInterval(checkLowStock, 30000);
+                // Check after initial load
+                setTimeout(checkLowStock, 5000);
+            })();
+        </script>
+
+    <!-- Low Stock Alert Modal (Task 5) -->
+    <div id="lowStockAlertModal" class="low-stock-overlay" style="display:none;">
+        <div class="low-stock-modal">
+            <h3><i class="fas fa-exclamation-triangle" style="color:#d97706;"></i> Low Stock Alert</h3>
+            <p id="lowStockAlertBody" style="font-size:0.9rem;color:var(--color-text-secondary);margin:0 0 4px;"></p>
+            <ul class="ls-list" id="lowStockAlertList"></ul>
+            <div id="lowStockAlertMore" style="font-size:0.8rem;color:var(--color-primary);margin-bottom:8px;cursor:pointer;display:none;" onclick="app.showSection('alerts');document.getElementById('lowStockAlertModal').style.display='none';"></div>
+            <div class="ls-actions">
+                <button class="btn btn--primary" style="flex:1;" onclick="app.showSection('alerts');document.getElementById('lowStockAlertModal').style.display='none';">
+                    <i class="fas fa-eye"></i> View Low Stock & Reorder
+                </button>
+                <button class="btn--ghost" onclick="sessionStorage.setItem('lowStockDismissedAt',Date.now());document.getElementById('lowStockAlertModal').style.display='none';">
+                    Remind Me Later
+                </button>
+            </div>
+        </div>
+    </div>
+
+    </body>
+
+</html>

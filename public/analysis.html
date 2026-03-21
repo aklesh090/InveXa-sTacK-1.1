@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InveXa — Inventory Intelligence & Prediction</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <link rel="stylesheet" href="analysis.css">
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="ia-header">
+  <div class="ia-header__left">
+    <a href="/" title="Back to Dashboard" style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;background:rgba(255,255,255,0.15);color:#fff;text-decoration:none;margin-right:6px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="ia-logo">
+      <i class="fas fa-brain"></i>
+      <div>
+        <div class="ia-logo__title">InveXa Intelligence</div>
+        <div class="ia-logo__sub">Inventory Prediction & Insight Engine</div>
+      </div>
+    </div>
+  </div>
+  <div class="ia-header__controls">
+    <div class="control-group">
+      <label>Analysis Period</label>
+      <select id="periodSelect" class="ia-select">
+        <option value="30">Last 30 Days</option>
+        <option value="60">Last 60 Days</option>
+        <option value="90" selected>Last 90 Days</option>
+        <option value="180">Last 180 Days</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Forecast Horizon</label>
+      <select id="forecastSelect" class="ia-select">
+        <option value="14">14 Days</option>
+        <option value="30" selected>30 Days</option>
+        <option value="60">60 Days</option>
+        <option value="90">90 Days</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Category</label>
+      <select id="categorySelect" class="ia-select">
+        <option value="all">All Categories</option>
+        <option value="Dairy">Dairy</option>
+        <option value="Produce">Produce</option>
+        <option value="Beverages">Beverages</option>
+        <option value="Meat">Meat</option>
+        <option value="Bakery">Bakery</option>
+        <option value="Snacks">Snacks</option>
+        <option value="Frozen">Frozen</option>
+        <option value="Household">Household</option>
+      </select>
+    </div>
+    <button class="ia-btn ia-btn--primary" id="runAnalysisBtn">
+      <i class="fas fa-play"></i> Run Analysis
+    </button>
+    <div class="last-updated">
+      <i class="fas fa-clock"></i> <span id="lastUpdated">Just now</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="ia-main">
+
+  <!-- ── KPI ROW ── -->
+  <section class="kpi-row">
+    <div class="kpi-card" id="kpi-revenue">
+      <div class="kpi-icon" style="background: rgba(0,102,255,0.12); color:#0066FF;">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Projected Revenue (30d)</div>
+        <div class="kpi-value" id="kpiRevenue">—</div>
+        <div class="kpi-delta" id="kpiRevenueDelta"></div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-stockout">
+      <div class="kpi-icon" style="background: rgba(239,68,68,0.12); color:#ef4444;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Stockout Risk Items</div>
+        <div class="kpi-value" id="kpiStockout">—</div>
+        <div class="kpi-delta" id="kpiStockoutDelta"></div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-waste">
+      <div class="kpi-icon" style="background: rgba(245,158,11,0.12); color:#f59e0b;">
+        <i class="fas fa-trash-alt"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Waste / Overstock Risk</div>
+        <div class="kpi-value" id="kpiWaste">—</div>
+        <div class="kpi-delta" id="kpiWasteDelta"></div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-opportunity">
+      <div class="kpi-icon" style="background: rgba(34,197,94,0.12); color:#22c55e;">
+        <i class="fas fa-arrow-trend-up"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Growth Opportunities</div>
+        <div class="kpi-value" id="kpiOpportunity">—</div>
+        <div class="kpi-delta" id="kpiOpportunityDelta"></div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-margin">
+      <div class="kpi-icon" style="background: rgba(168,85,247,0.12); color:#a855f7;">
+        <i class="fas fa-percent"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-label">Avg Profit Margin</div>
+        <div class="kpi-value" id="kpiMargin">—</div>
+        <div class="kpi-delta" id="kpiMarginDelta"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TREND + SEASONAL ROW ── -->
+  <section class="chart-row">
+    <!-- Sales Trend + Forecast -->
+    <div class="ia-card ia-card--large">
+      <div class="ia-card__header">
+        <div>
+          <h2 class="ia-card__title"><i class="fas fa-chart-area"></i> Sales Trend & Forecast</h2>
+          <p class="ia-card__sub">Historical performance with AI-projected forecast band</p>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-dot" style="background:#0066FF;"></span> Historical
+          <span class="legend-dot" style="background:#22c55e;"></span> Forecast
+          <span class="legend-dot" style="background:rgba(34,197,94,0.2);border:1px dashed #22c55e;"></span> Confidence Band
+        </div>
+      </div>
+      <div class="ia-card__body">
+        <canvas id="trendChart" height="90"></canvas>
+      </div>
+    </div>
+
+    <!-- Seasonal Heatmap -->
+    <div class="ia-card ia-card--small">
+      <div class="ia-card__header">
+        <div>
+          <h2 class="ia-card__title"><i class="fas fa-calendar-alt"></i> Seasonal Pattern</h2>
+          <p class="ia-card__sub">Sales index by month (1.0 = average)</p>
+        </div>
+      </div>
+      <div class="ia-card__body">
+        <canvas id="seasonalChart" height="200"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CATEGORY + VELOCITY ROW ── -->
+  <section class="chart-row chart-row--3col">
+    <div class="ia-card">
+      <div class="ia-card__header">
+        <h2 class="ia-card__title"><i class="fas fa-tags"></i> Category Performance</h2>
+      </div>
+      <div class="ia-card__body">
+        <canvas id="categoryChart" height="220"></canvas>
+      </div>
+    </div>
+    <div class="ia-card">
+      <div class="ia-card__header">
+        <h2 class="ia-card__title"><i class="fas fa-tachometer-alt"></i> Sales Velocity Ranking</h2>
+        <p class="ia-card__sub" style="font-size:0.75rem;color:var(--ia-muted);">Units/day (last 30d)</p>
+      </div>
+      <div class="ia-card__body">
+        <canvas id="velocityChart" height="220"></canvas>
+      </div>
+    </div>
+    <div class="ia-card">
+      <div class="ia-card__header">
+        <h2 class="ia-card__title"><i class="fas fa-balance-scale"></i> Margin vs Demand</h2>
+        <p class="ia-card__sub" style="font-size:0.75rem;color:var(--ia-muted);">Bubble = stock level</p>
+      </div>
+      <div class="ia-card__body">
+        <canvas id="bubbleChart" height="220"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRODUCT INTELLIGENCE TABLE ── -->
+  <section class="ia-card ia-card--full">
+    <div class="ia-card__header">
+      <div>
+        <h2 class="ia-card__title"><i class="fas fa-lightbulb"></i> Product Intelligence — Action Recommendations</h2>
+        <p class="ia-card__sub">AI-driven recommendations based on sales velocity, trend, margin, stockout risk and seasonal patterns</p>
+      </div>
+      <div class="action-filter">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn increase" data-filter="increase"><i class="fas fa-arrow-up"></i> Increase</button>
+        <button class="filter-btn reduce" data-filter="reduce"><i class="fas fa-arrow-down"></i> Reduce</button>
+        <button class="filter-btn replace" data-filter="replace"><i class="fas fa-sync"></i> Replace</button>
+        <button class="filter-btn remove" data-filter="remove"><i class="fas fa-times"></i> Remove</button>
+      </div>
+    </div>
+    <div class="ia-card__body">
+      <div class="table-wrap">
+        <table class="ia-table" id="productTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Action</th>
+              <th>Velocity <small>(u/day)</small></th>
+              <th>Trend</th>
+              <th>Margin %</th>
+              <th>Stock</th>
+              <th>Stockout In</th>
+              <th>Seasonal Peak</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── INSIGHT CARDS ── -->
+  <section class="insights-row" id="insightCards">
+    <!-- Populated by JS -->
+  </section>
+
+</main>
+
+<!-- ══════════════ LOADING OVERLAY ══════════════ -->
+<div class="ia-loading" id="loadingOverlay">
+  <div class="ia-loading__box">
+    <div class="ia-spinner"></div>
+    <div class="ia-loading__text">Analysing inventory data...</div>
+    <div class="ia-loading__sub" id="loadingStep">Initialising</div>
+  </div>
+</div>
+
+<script src="analysis.js"></script>
+</body>
+</html>
