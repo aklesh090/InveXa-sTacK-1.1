@@ -1,27 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const User = require('../models/User');
 const Store = require('../models/Store');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'invexa-stack-secret-2026';
 
-// ─── Email Transporter ─────────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+// ─── Email Transporter (HTTP API) ─────────────────────────────────────────────
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 async function sendOTPEmail(email, otp, storeName) {
+    if (!process.env.SENDGRID_API_KEY) {
+        console.error('SENDGRID_API_KEY missing - skipping email');
+        return;
+    }
+    
     const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to: email,
@@ -50,7 +46,7 @@ async function sendOTPEmail(email, otp, storeName) {
             </div>
         `
     };
-    await transporter.sendMail(mailOptions);
+    await sgMail.send(mailOptions);
 }
 
 // ─── POST /api/auth/register ── Create store + owner ────────────────────────────
@@ -317,7 +313,7 @@ router.post('/invite', async (req, res) => {
                 </div>
             `
         };
-        await transporter.sendMail(inviteMailOptions);
+        await sgMail.send(inviteMailOptions);
 
         res.json({ success: true, message: `Invite sent to ${email}` });
     } catch (err) {
@@ -440,37 +436,35 @@ router.get('/store-users', async (req, res) => {
 // ─── GET /api/auth/test-email ── Diagnostic Endpoint for Render ──────────────
 router.get('/test-email', async (req, res) => {
     try {
-        const testTransporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            requireTLS: true,
-            connectionTimeout: 10000,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-
-        // Test the connection immediately
-        await testTransporter.verify();
+        if (!process.env.SENDGRID_API_KEY) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'SENDGRID_API_KEY is missing from environment variables on Render.' 
+            });
+        }
+        
+        const msg = {
+            to: process.env.EMAIL_USER,
+            from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+            subject: 'InveXa sTacK - Test Email',
+            text: 'This is a test email sent via SendGrid API to bypass Render network blocks.',
+        };
+        
+        await sgMail.send(msg);
 
         res.json({ 
             success: true, 
-            message: 'Email transporter connected successfully on Render!',
+            message: 'SendGrid email API connected and test email sent successfully from Render!',
             config: {
-                userCheck: process.env.EMAIL_USER ? 'Found' : 'MISSING',
-                passCheck: process.env.EMAIL_PASS ? 'Found' : 'MISSING'
+                keyLength: process.env.SENDGRID_API_KEY.length,
+                assignedFrom: msg.from
             }
         });
     } catch (err) {
         res.status(500).json({ 
             success: false, 
-            error: 'Transporter failed to connect.',
-            details: err.message,
-            config: {
-                userCheck: process.env.EMAIL_USER ? 'Found' : 'MISSING'
-            }
+            error: 'SendGrid failed to send.',
+            details: err.response ? err.response.body : err.message
         });
     }
 });

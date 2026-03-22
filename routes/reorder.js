@@ -1,18 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-function createTransporter() {
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        tls: { rejectUnauthorized: false }
-    });
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
 // POST /api/reorder - Send reorder email to supplier
@@ -61,7 +52,10 @@ ${req.user?.storeName || 'InveXa sTacK'} Inventory System
         });
 
         try {
-            const transporter = createTransporter();
+            if (!process.env.SENDGRID_API_KEY) {
+                throw new Error("SENDGRID_API_KEY is missing. Email cannot be sent.");
+            }
+
             const mailOptions = {
                 from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
                 to: supplier.email,
@@ -69,7 +63,8 @@ ${req.user?.storeName || 'InveXa sTacK'} Inventory System
                 text: emailBody
             };
             if (process.env.MANAGER_EMAIL) mailOptions.cc = process.env.MANAGER_EMAIL;
-            await transporter.sendMail(mailOptions);
+            
+            await sgMail.send(mailOptions);
 
             reorderLog.emailStatus = 'sent';
             await reorderLog.save();
@@ -84,9 +79,9 @@ ${req.user?.storeName || 'InveXa sTacK'} Inventory System
             reorderLog.emailError = emailErr.message;
             await reorderLog.save();
 
-            let suggestion = emailErr.message.includes('auth')
-                ? 'Gmail requires an App Password. Generate one at https://myaccount.google.com/apppasswords'
-                : 'Check internet connection and email credentials in .env';
+            let suggestion = emailErr.message.includes('SENDGRID')
+                ? 'Check your SENDGRID_API_KEY in Render Environment Settings.'
+                : 'SendGrid requires a Verified Sender Identity matching your EMAIL_FROM address.';
 
             res.status(500).json({ success: false, error: `Email failed: ${emailErr.message}`, suggestion, reorderLog });
         }
