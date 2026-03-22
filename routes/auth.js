@@ -434,4 +434,40 @@ router.get('/store-users', async (req, res) => {
     }
 });
 
+// ─── GET /api/auth/test-email ── Diagnostic Endpoint for Render ──────────────
+router.get('/test-email', async (req, res) => {
+    try {
+        const testTransporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        // Test the connection immediately
+        await testTransporter.verify();
+
+        res.json({ 
+            success: true, 
+            message: 'Email transporter connected successfully on Render!',
+            config: {
+                userCheck: process.env.EMAIL_USER ? 'Found' : 'MISSING',
+                passCheck: process.env.EMAIL_PASS ? 'Found' : 'MISSING'
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            error: 'Transporter failed to connect.',
+            details: err.message,
+            config: {
+                userCheck: process.env.EMAIL_USER ? 'Found' : 'MISSING'
+            }
+        });
+    }
+});
+
 module.exports = router;
