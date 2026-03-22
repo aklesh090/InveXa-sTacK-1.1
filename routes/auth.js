@@ -10,8 +10,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'invexa-stack-secret-2026';
 // ─── Email Transporter ─────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -439,8 +442,10 @@ router.get('/test-email', async (req, res) => {
     try {
         const testTransporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
+            port: 587,
+            secure: false,
+            requireTLS: true,
+            connectionTimeout: 10000,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
