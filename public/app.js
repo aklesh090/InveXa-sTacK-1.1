@@ -476,7 +476,29 @@ class GroceryInventorySystem {
         banner.style.display = 'flex';
     }
 
+    // Returns Chart.js color tokens matching the current theme
+    getChartColors() {
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        return {
+            textColor: isDark ? 'rgba(240,236,228,0.85)' : 'rgba(26,26,46,0.85)',
+            gridColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            doughnutBorder: isDark ? '#12121a' : '#ffffff',
+        };
+    }
+
+    // Apply Chart.js global defaults for the current theme
+    applyChartDefaults() {
+        const c = this.getChartColors();
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = c.textColor;
+            Chart.defaults.borderColor = c.gridColor;
+            Chart.defaults.scale = Chart.defaults.scale || {};
+            Chart.defaults.plugins = Chart.defaults.plugins || {};
+        }
+    }
+
     createCharts() {
+        this.applyChartDefaults();
         this.createSalesChart();
         this.createCategoryChart();
     }
@@ -489,6 +511,7 @@ class GroceryInventorySystem {
             this.charts.sales.destroy();
         }
 
+        const chartColors = this.getChartColors();
         this.charts.sales = new Chart(ctx, {
             type: 'line',
             data: {
@@ -516,11 +539,17 @@ class GroceryInventorySystem {
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: { color: chartColors.gridColor },
                         ticks: {
+                            color: chartColors.textColor,
                             callback: function (value) {
                                 return '₹' + value.toLocaleString('en-IN');
                             }
                         }
+                    },
+                    x: {
+                        grid: { color: chartColors.gridColor },
+                        ticks: { color: chartColors.textColor }
                     }
                 }
             }
@@ -536,6 +565,7 @@ class GroceryInventorySystem {
         }
 
         const colors = ['#1FB8CD', '#FFC185', '#B4413C', '#ECEBD5', '#5D878F', '#DB4545', '#D2BA4C', '#964325'];
+        const catChartColors = this.getChartColors();
 
         this.charts.category = new Chart(ctx, {
             type: 'doughnut',
@@ -545,7 +575,7 @@ class GroceryInventorySystem {
                     data: this.categories.map(cat => cat.totalProducts),
                     backgroundColor: colors,
                     borderWidth: 2,
-                    borderColor: '#ffffff'
+                    borderColor: catChartColors.doughnutBorder
                 }]
             },
             options: {
@@ -553,7 +583,8 @@ class GroceryInventorySystem {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: { color: catChartColors.textColor }
                     }
                 }
             }
@@ -568,6 +599,7 @@ class GroceryInventorySystem {
             this.charts.salesReport.destroy();
         }
 
+        const reportChartColors = this.getChartColors();
         this.charts.salesReport = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -584,14 +616,23 @@ class GroceryInventorySystem {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: reportChartColors.textColor } }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: { color: reportChartColors.gridColor },
                         ticks: {
+                            color: reportChartColors.textColor,
                             callback: function (value) {
                                 return '₹' + value.toLocaleString('en-IN');
                             }
                         }
+                    },
+                    x: {
+                        grid: { color: reportChartColors.gridColor },
+                        ticks: { color: reportChartColors.textColor }
                     }
                 }
             }
@@ -4177,6 +4218,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             const ctx = document.getElementById('spRevenueChart');
             if (!ctx) return;
             if (this.charts.spRevenue) this.charts.spRevenue.destroy();
+            const spColors = this.getChartColors();
             const labels = this.salesData.map(d => new Date(d.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
             const data = this.salesData.map(d => d.totalSales || 0);
             this.charts.spRevenue = new Chart(ctx, {
@@ -4204,8 +4246,11 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+                    plugins: { legend: { position: 'top', labels: { color: spColors.textColor } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: spColors.gridColor }, ticks: { color: spColors.textColor, callback: v => '₹' + v.toLocaleString('en-IN') } },
+                        x: { grid: { color: spColors.gridColor }, ticks: { color: spColors.textColor } }
+                    }
                 }
             });
 
@@ -4222,12 +4267,12 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                         data: this.categories.map(c => c.totalValue || 0),
                         backgroundColor: catColors,
                         borderWidth: 2,
-                        borderColor: '#ffffff'
+                        borderColor: spColors.doughnutBorder
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right' } }
+                    plugins: { legend: { position: 'right', labels: { color: spColors.textColor } } }
                 }
             });
         }, 150);
@@ -4265,14 +4310,15 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             const ctx = document.getElementById('spProfitDoughnut');
             if (!ctx) return;
             if (this.charts.spProfitDoughnut) this.charts.spProfitDoughnut.destroy();
+            const profitColors = this.getChartColors();
             const catColors = ['#10b981', '#0066FF', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
             this.charts.spProfitDoughnut = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(catProfit),
-                    datasets: [{ data: Object.values(catProfit), backgroundColor: catColors, borderWidth: 2, borderColor: '#fff' }]
+                    datasets: [{ data: Object.values(catProfit), backgroundColor: catColors, borderWidth: 2, borderColor: profitColors.doughnutBorder }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: profitColors.textColor } } } }
             });
 
             // Revenue vs Cost vs Profit bar
@@ -4295,8 +4341,11 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } }
+                    plugins: { legend: { position: 'top', labels: { color: profitColors.textColor } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: profitColors.gridColor }, ticks: { color: profitColors.textColor, callback: v => '₹' + v.toLocaleString('en-IN') } },
+                        x: { grid: { color: profitColors.gridColor }, ticks: { color: profitColors.textColor } }
+                    }
                 }
             });
         }, 150);
@@ -4536,28 +4585,28 @@ Use the actual product names. Be specific and concise for a small retail owner.`
         const user = JSON.parse(localStorage.getItem('invexa_user') || '{}');
 
         body.innerHTML = `
-            <div id="invoicePrintArea" style="font-family:'Inter','Outfit',sans-serif;">
+            <div id="invoicePrintArea" style="font-family:'Inter','Outfit',sans-serif;color:var(--color-text);">
                 <div style="text-align:center;padding-bottom:16px;border-bottom:2px dashed var(--color-border);margin-bottom:16px;">
-                    <h2 style="margin:0;font-size:1.4rem;">InveXa sTacK</h2>
+                    <h2 style="margin:0;font-size:1.4rem;color:var(--color-text);">InveXa sTacK</h2>
                     <p style="color:var(--color-text-secondary);font-size:0.8rem;margin:4px 0;">Grocery Inventory Management System</p>
                     <p style="font-size:0.75rem;color:var(--color-text-secondary);">Invoice #${invoiceNo}</p>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:16px;color:var(--color-text);">
                     <div><strong>Date:</strong> ${now.toLocaleDateString('en-IN')}<br><strong>Time:</strong> ${now.toLocaleTimeString('en-IN')}</div>
                     <div style="text-align:right;"><strong>Cashier:</strong> ${user.fullName || user.username || 'N/A'}<br><strong>Role:</strong> ${user.role || 'staff'}</div>
                 </div>
-                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;color:var(--color-text);">
                     <thead>
                         <tr style="border-bottom:2px solid var(--color-border);">
-                            <th style="text-align:left;padding:8px 4px;">Item</th>
-                            <th style="text-align:center;padding:8px 4px;">Qty</th>
-                            <th style="text-align:right;padding:8px 4px;">Price</th>
-                            <th style="text-align:right;padding:8px 4px;">Total</th>
+                            <th style="text-align:left;padding:8px 4px;color:var(--color-text);">Item</th>
+                            <th style="text-align:center;padding:8px 4px;color:var(--color-text);">Qty</th>
+                            <th style="text-align:right;padding:8px 4px;color:var(--color-text);">Price</th>
+                            <th style="text-align:right;padding:8px 4px;color:var(--color-text);">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${(saleData.items || []).map(item => `
-                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <tr style="border-bottom:1px solid var(--color-border);">
                                 <td style="padding:6px 4px;">${item.productName}</td>
                                 <td style="text-align:center;padding:6px 4px;">${item.quantity}</td>
                                 <td style="text-align:right;padding:6px 4px;">₹${item.price.toLocaleString('en-IN')}</td>
@@ -4567,7 +4616,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                     </tbody>
                 </table>
                 <div style="border-top:2px dashed var(--color-border);margin-top:12px;padding-top:12px;">
-                    <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700;">
+                    <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700;color:var(--color-text);">
                         <span>TOTAL</span>
                         <span style="color:#10b981;">₹${(saleData.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>

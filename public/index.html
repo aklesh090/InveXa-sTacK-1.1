@@ -679,6 +679,14 @@
             localStorage.setItem('invexa_theme', theme);
             const icon = document.getElementById('themeIcon');
             if (icon) icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            // Re-render charts with updated theme colors
+            if (typeof app !== 'undefined' && app) {
+                app.applyChartDefaults();
+                app.createCharts();
+                // Re-render Sales & Profit hub charts if visible
+                try { if (document.getElementById('spRevenueChart')) app.renderRevenueTab(); } catch(e) {}
+                try { if (document.getElementById('spProfitDoughnut')) app.renderProfitTab(); } catch(e) {}
+            }
         }
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || 'dark';
