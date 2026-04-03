@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 const nodemailer = require('nodemailer');
 
 function createTransporter() {
@@ -16,7 +17,7 @@ function createTransporter() {
 }
 
 // POST /api/reorder - Send reorder email to supplier
-router.post('/', async (req, res) => {
+router.post('/', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const Product = req.models.Product;
         const Supplier = req.models.Supplier;
@@ -96,7 +97,7 @@ ${req.user?.storeName || 'InveXa sTacK'} Inventory System
 });
 
 // GET /api/reorder - List reorder logs
-router.get('/', async (req, res) => {
+router.get('/', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const logs = await req.models.ReorderLog.find().sort({ createdAt: -1 }).limit(50);
         res.json(logs);
@@ -106,7 +107,7 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH /api/reorder/:id/status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const log = await req.models.ReorderLog.findByIdAndUpdate(
             req.params.id, { orderStatus: req.body.orderStatus }, { new: true }

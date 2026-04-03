@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 
 // GET /api/sales - list sales
-router.get('/', async (req, res) => {
+router.get('/', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const Sale = req.models.Sale;
         const { startDate, endDate, days } = req.query;
@@ -26,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/sales/summary - daily summary for charts
-router.get('/summary', async (req, res) => {
+router.get('/summary', roleCheck('staff', 'manager', 'admin', 'owner'), async (req, res) => {
     try {
         const Sale = req.models.Sale;
         const { days = 7 } = req.query;

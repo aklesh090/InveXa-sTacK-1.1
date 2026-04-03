@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 
 // GET /api/categories - list all with dynamic stats
-router.get('/', async (req, res) => {
+router.get('/', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const Category = req.models.Category;
         const Product = req.models.Product;
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/categories
-router.post('/', async (req, res) => {
+router.post('/', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const Category = req.models.Category;
         const category = new Category({ name: req.body.name, description: req.body.description || '' });
@@ -51,7 +52,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/categories/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const category = await req.models.Category.findByIdAndUpdate(
             req.params.id, { name: req.body.name, description: req.body.description },
@@ -66,7 +67,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/categories/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const Category = req.models.Category;
         const Product = req.models.Product;

@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 
 // GET /api/stock-adjustments
-router.get('/', async (req, res) => {
+router.get('/', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const StockAdjustment = req.models.StockAdjustment;
         const { productId, limit = 50 } = req.query;

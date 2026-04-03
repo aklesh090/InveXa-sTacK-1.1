@@ -7,6 +7,25 @@ const Store = require('../models/Store');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'invexa-stack-secret-2026';
 
+function getRoleFromInviteCode(store, code) {
+    if (!store || !code) return null;
+    if (store.adminInviteCode === code) return 'admin';
+    if (store.managerInviteCode === code) return 'manager';
+    if (store.staffInviteCode === code) return 'staff';
+    if (store.inviteCode === code) return 'staff';
+    return null;
+}
+
+function getInviteCodeForRole(store, role) {
+    if (!store || !role) return null;
+    const mapping = {
+        staff: store.staffInviteCode,
+        manager: store.managerInviteCode,
+        admin: store.adminInviteCode
+    };
+    return mapping[role] || null;
+}
+
 // ─── Email Transporter ─────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -71,15 +90,20 @@ router.post('/register', async (req, res) => {
             return res.status(409).json({ error: 'An account with this email already exists' });
         }
 
-        // Create store
+        // Create store with role-specific invite codes
         const storeCode = Store.generateStoreCode(storeName);
-        const inviteCode = Store.generateInviteCode();
+        const staffInviteCode = Store.generateInviteCode();
+        const managerInviteCode = Store.generateInviteCode();
+        const adminInviteCode = Store.generateInviteCode();
         const store = new Store({
             storeName,
             storeCode,
             ownerEmail: email.toLowerCase(),
             dbName: `store_${storeCode.replace(/-/g, '_')}`,
-            inviteCode
+            inviteCode: staffInviteCode,
+            staffInviteCode,
+            managerInviteCode,
+            adminInviteCode
         });
         await store.save();
 
@@ -108,7 +132,9 @@ router.post('/register', async (req, res) => {
             email: user.email,
             storeCode,
             storeName,
-            inviteCode,
+            inviteCode: staffInviteCode,
+            managerInviteCode,
+            adminInviteCode,
             requiresVerification: true
         });
     } catch (err) {
@@ -158,7 +184,7 @@ router.post('/verify-otp', async (req, res) => {
             storeDbName: store?.dbName || `store_${user.storeCode}`
         }, JWT_SECRET, { expiresIn: '7d' });
 
-        res.json({
+        const response = {
             success: true,
             message: 'Email verified successfully!',
             token,
@@ -168,9 +194,15 @@ router.post('/verify-otp', async (req, res) => {
                 role: user.role,
                 storeCode: user.storeCode,
                 storeName: store?.storeName
-            },
-            inviteCode: store?.inviteCode
-        });
+            }
+        };
+        if (user.role === 'owner') {
+            response.inviteCode = store?.inviteCode;
+            response.staffInviteCode = store?.staffInviteCode;
+            response.managerInviteCode = store?.managerInviteCode;
+            response.adminInviteCode = store?.adminInviteCode;
+        }
+        res.json(response);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -274,8 +306,8 @@ router.post('/invite', async (req, res) => {
         if (!token) return res.status(401).json({ error: 'Authentication required' });
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        if (!['owner', 'admin'].includes(decoded.role)) {
-            return res.status(403).json({ error: 'Only owners and admins can invite users' });
+        if (decoded.role !== 'owner') {
+            return res.status(403).json({ error: 'Only store owners can invite users' });
         }
 
         const { email, role, fullName } = req.body;
@@ -290,7 +322,12 @@ router.post('/invite', async (req, res) => {
         const store = await Store.findOne({ storeCode: decoded.storeCode });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        // Send invite email
+        const inviteRole = role && ['staff', 'manager', 'admin'].includes(role) ? role : 'staff';
+        const inviteCodeToSend = getInviteCodeForRole(store, inviteRole);
+        if (!inviteCodeToSend) {
+            return res.status(400).json({ error: 'Invalid role for invite. Use staff, manager, or admin.' });
+        }
+
         const inviteMailOptions = {
             from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
             to: email,
@@ -302,13 +339,13 @@ router.post('/invite', async (req, res) => {
                     </div>
                     <div style="padding:32px;">
                         <p style="color:#f0ece4;font-size:1rem;margin:0 0 16px;">
-                            <strong>${decoded.fullName}</strong> has invited you to join <strong>${store.storeName}</strong> as a <strong>${role || 'staff'}</strong> member.
+                            <strong>${decoded.fullName}</strong> has invited you to join <strong>${store.storeName}</strong> as a <strong>${inviteRole}</strong> member.
                         </p>
                         <p style="color:rgba(240,236,228,0.6);font-size:0.9rem;margin:0 0 24px;">
                             Use this invite code to join the store:
                         </p>
                         <div style="background:rgba(255,255,255,0.06);border:2px solid #2ecc71;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-                            <span style="font-size:1.8rem;font-weight:800;letter-spacing:6px;color:#2ecc71;">${store.inviteCode}</span>
+                            <span style="font-size:1.8rem;font-weight:800;letter-spacing:6px;color:#2ecc71;">${inviteCodeToSend}</span>
                         </div>
                         <p style="color:rgba(240,236,228,0.4);font-size:0.8rem;margin:0;text-align:center;">
                             Go to the InveXa sTacK login page and click "Join a Store" to get started.
@@ -338,10 +375,21 @@ router.post('/join', async (req, res) => {
         }
 
         // Find store by invite code
-        const store = await Store.findOne({ inviteCode: inviteCode.toUpperCase(), isActive: true });
+        const normalizedCode = inviteCode.toUpperCase();
+        const store = await Store.findOne({
+            isActive: true,
+            $or: [
+                { staffInviteCode: normalizedCode },
+                { managerInviteCode: normalizedCode },
+                { adminInviteCode: normalizedCode },
+                { inviteCode: normalizedCode }
+            ]
+        });
         if (!store) {
             return res.status(404).json({ error: 'Invalid invite code. Please check with your store owner.' });
         }
+
+        const role = getRoleFromInviteCode(store, normalizedCode) || 'staff';
 
         // Check if email already registered
         const existing = await User.findOne({ email: email.toLowerCase() });
@@ -349,12 +397,11 @@ router.post('/join', async (req, res) => {
             return res.status(409).json({ error: 'An account with this email already exists' });
         }
 
-        // Create staff user
         const user = new User({
             email: email.toLowerCase(),
             password,
             fullName,
-            role: 'staff',
+            role,
             storeCode: store.storeCode
         });
         const otp = user.generateOTP();
@@ -403,14 +450,22 @@ router.get('/store-info', async (req, res) => {
 
         const userCount = await User.countDocuments({ storeCode: store.storeCode });
 
-        res.json({
+        const response = {
             storeName: store.storeName,
             storeCode: store.storeCode,
-            inviteCode: store.inviteCode,
             plan: store.plan,
             userCount,
             createdAt: store.createdAt
-        });
+        };
+
+        if (decoded.role === 'owner') {
+            response.inviteCode = store.inviteCode;
+            response.staffInviteCode = store.staffInviteCode;
+            response.managerInviteCode = store.managerInviteCode;
+            response.adminInviteCode = store.adminInviteCode;
+        }
+
+        res.json(response);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -423,7 +478,7 @@ router.get('/store-users', async (req, res) => {
         if (!token) return res.status(401).json({ error: 'Auth required' });
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        if (!['owner', 'admin'].includes(decoded.role)) {
+        if (decoded.role !== 'owner') {
             return res.status(403).json({ error: 'Insufficient permissions' });
         }
 

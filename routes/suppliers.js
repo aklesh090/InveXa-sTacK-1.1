@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 
 // GET /api/suppliers
-router.get('/', async (req, res) => {
+router.get('/', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const suppliers = await req.models.Supplier.find().sort({ name: 1 });
         res.json(suppliers);
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/suppliers/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
     try {
         const supplier = await req.models.Supplier.findById(req.params.id);
         if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
@@ -23,7 +24,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/suppliers
-router.post('/', async (req, res) => {
+router.post('/', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const Supplier = req.models.Supplier;
         const supplierData = {
@@ -43,7 +44,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/suppliers/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const supplier = await req.models.Supplier.findByIdAndUpdate(
             req.params.id, { ...req.body }, { new: true, runValidators: true }
@@ -59,7 +60,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/suppliers/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const supplier = await req.models.Supplier.findByIdAndDelete(req.params.id);
         if (!supplier) return res.status(404).json({ error: 'Supplier not found' });

@@ -49,16 +49,30 @@ class GroceryInventorySystem {
 
     async loadAllData() {
         try {
-            const [products, categories, suppliers, salesSummary] = await Promise.all([
-                this.api('/products'),
-                this.api('/categories'),
-                this.api('/suppliers'),
-                this.api('/sales/summary?days=7')
-            ]);
-            this.products = products;
-            this.categories = categories;
-            this.suppliers = suppliers;
-            this.salesData = salesSummary.map(s => ({ date: s.date, totalSales: s.totalSales, transactions: s.transactions, topProduct: s.topProduct || '' }));
+            const userData = JSON.parse(localStorage.getItem('invexa_user') || '{}');
+            const role = (userData.role || 'staff').toLowerCase();
+            const requests = [this.api('/products'), this.api('/sales/summary?days=7')];
+            let categoryIndex = -1;
+            let supplierIndex = -1;
+
+            if (role !== 'staff') {
+                categoryIndex = 1;
+                supplierIndex = 2;
+                requests.splice(1, 0, this.api('/categories'));
+                requests.splice(2, 0, this.api('/suppliers'));
+            }
+
+            const results = await Promise.all(requests);
+            this.products = results[0];
+            if (role !== 'staff') {
+                this.categories = results[categoryIndex];
+                this.suppliers = results[supplierIndex];
+                this.salesData = results[3].map(s => ({ date: s.date, totalSales: s.totalSales, transactions: s.transactions, topProduct: s.topProduct || '' }));
+            } else {
+                this.categories = [];
+                this.suppliers = [];
+                this.salesData = results[1].map(s => ({ date: s.date, totalSales: s.totalSales, transactions: s.transactions, topProduct: s.topProduct || '' }));
+            }
             this.updateConnectionStatus(true);
         } catch (err) {
             this.showNotification('' + err.message, 'error');

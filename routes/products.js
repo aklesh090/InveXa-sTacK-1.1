@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { roleCheck } = require('../middleware/storeDb');
 
 // GET /api/products - list all products with optional filtering
 router.get('/', async (req, res) => {
@@ -42,7 +43,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/products
-router.post('/', async (req, res) => {
+router.post('/', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const Product = req.models.Product;
         const product = new Product({ ...req.body, lastRestocked: new Date() });
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/products/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const product = await req.models.Product.findByIdAndUpdate(
             req.params.id, { ...req.body }, { new: true, runValidators: true }
@@ -75,7 +76,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // PATCH /api/products/:id/stock
-router.patch('/:id/stock', async (req, res) => {
+router.patch('/:id/stock', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const Product = req.models.Product;
         const StockAdjustment = req.models.StockAdjustment;
@@ -125,7 +126,7 @@ router.patch('/:id/stock', async (req, res) => {
 });
 
 // DELETE /api/products/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', roleCheck('admin', 'owner'), async (req, res) => {
     try {
         const product = await req.models.Product.findByIdAndDelete(req.params.id);
         if (!product) return res.status(404).json({ error: 'Product not found' });

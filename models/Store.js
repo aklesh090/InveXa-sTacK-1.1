@@ -33,6 +33,18 @@ const storeSchema = new mongoose.Schema({
         type: String,
         unique: true
     },
+    staffInviteCode: {
+        type: String,
+        unique: true
+    },
+    managerInviteCode: {
+        type: String,
+        unique: true
+    },
+    adminInviteCode: {
+        type: String,
+        unique: true
+    },
     isActive: {
         type: Boolean,
         default: true
