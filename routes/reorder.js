@@ -119,4 +119,34 @@ router.patch('/:id/status', roleCheck('manager', 'admin', 'owner'), async (req, 
     }
 });
 
+// GET /api/reorder/supplier/:supplierId — Full order history for one supplier
+router.get('/supplier/:supplierId', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
+    try {
+        const logs = await req.models.ReorderLog
+            .find({ supplierId: req.params.supplierId })
+            .sort({ createdAt: -1 })
+            .limit(100);
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/reorder/:id/deliver — Mark order as delivered with actual qty received
+router.patch('/:id/deliver', roleCheck('manager', 'admin', 'owner'), async (req, res) => {
+    try {
+        const { quantityReceived, deliveryNotes } = req.body;
+        const update = {
+            orderStatus: 'delivered',
+            finalQuantityAgreed: quantityReceived,
+            notes: deliveryNotes || ''
+        };
+        const log = await req.models.ReorderLog.findByIdAndUpdate(req.params.id, update, { new: true });
+        if (!log) return res.status(404).json({ error: 'Reorder log not found' });
+        res.json(log);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

@@ -37,6 +37,14 @@ app.use('/api/dashboard', storeDb, require('./routes/dashboard'));
 app.use('/api/stock-adjustments', storeDb, require('./routes/stockAdjustments'));
 app.use('/api/reorder', storeDb, require('./routes/reorder'));
 
+// ─── Voice Call Routes ─────────────────────────────────────────────────────
+// Webhook is mounted FIRST (before storeDb) so Bland AI can call it without a JWT
+// POST /api/voice-call/webhook  → public Bland AI result callback
+// POST /api/voice-call          → trigger AI call + email (requires auth)
+const voiceCallRouter = require('./routes/voicecall');
+app.post('/api/voice-call/webhook', voiceCallRouter.handleWebhook);
+app.use('/api/voice-call', storeDb, voiceCallRouter);
+
 // ─── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
     try {

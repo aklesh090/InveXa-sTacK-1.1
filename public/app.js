@@ -852,7 +852,12 @@ class GroceryInventorySystem {
             <tr>
                 <td>
                     <div>
-                        <strong>${this.escapeHtml(supplier.name)}</strong>
+                        <a href="#" onclick="event.preventDefault();app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g,"\\'")}')"
+                           style="color:var(--color-text);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:6px;"
+                           title="Click to view interaction history">
+                            ${this.escapeHtml(supplier.name)}
+                            <i class="fas fa-history" style="font-size:0.75rem;color:#7c3aed;opacity:0.7;"></i>
+                        </a>
                         ${paymentHtml}
                     </div>
                 </td>
@@ -877,6 +882,10 @@ class GroceryInventorySystem {
                 <td>
                     <div class="table-actions">
                         ${upiBtn}
+                        <button class="btn-icon" style="color:#7c3aed;" onclick="app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g,"\\'")}')"
+                            title="View order & call history">
+                            <i class="fas fa-history"></i>
+                        </button>
                         <button class="btn-icon btn-icon--edit" onclick="app.editSupplier('${supplier._id || supplier.id}')" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -887,6 +896,199 @@ class GroceryInventorySystem {
                 </td>
             </tr>
         `}).join('');
+    }
+
+    // ─── Supplier Tracking Modal ─────────────────────────────────────────────
+    async showSupplierTracking(supplierId, supplierName) {
+        const modal = document.getElementById('supplierTrackingModal');
+        const titleEl = document.getElementById('supplierTrackingTitle');
+        const subtitleEl = document.getElementById('supplierTrackingSubtitle');
+        const statsEl = document.getElementById('supplierTrackingStats');
+        const loadingEl = document.getElementById('supplierTrackingLoading');
+        const emptyEl = document.getElementById('supplierTrackingEmpty');
+        const tableEl = document.getElementById('supplierTrackingTable');
+        const bodyEl = document.getElementById('supplierTrackingBody');
+
+        titleEl.textContent = `${supplierName} — Order History`;
+        subtitleEl.textContent = 'Loading interaction records...';
+        statsEl.innerHTML = '';
+        loadingEl.style.display = 'block';
+        emptyEl.style.display = 'none';
+        tableEl.style.display = 'none';
+        modal.classList.remove('hidden');
+
+        try {
+            const logs = await this.api(`/reorder/supplier/${supplierId}`);
+
+            loadingEl.style.display = 'none';
+
+            if (!logs || logs.length === 0) {
+                emptyEl.style.display = 'block';
+                subtitleEl.textContent = 'No interactions recorded yet.';
+                return;
+            }
+
+            // ── Summary stats ────────────────────────────────────────────
+            const totalOrders    = logs.length;
+            const calls          = logs.filter(l => l.callStatus && l.callStatus !== 'not_initiated').length;
+            const emails         = logs.filter(l => l.emailStatus === 'sent').length;
+            const delivered      = logs.filter(l => l.orderStatus === 'delivered').length;
+            const totalRequested = logs.reduce((s, l) => s + (l.reorderQuantity || 0), 0);
+            const totalDelivered = logs.reduce((s, l) => s + (l.finalQuantityAgreed || 0), 0);
+            const fillRate       = totalRequested > 0 ? Math.round((totalDelivered / totalRequested) * 100) : 0;
+
+            statsEl.innerHTML = [
+                { label: 'Total Orders',   value: totalOrders,  icon: 'fa-box',        color: '#0066FF' },
+                { label: 'AI Calls Made',  value: calls,         icon: 'fa-phone',      color: '#7c3aed' },
+                { label: 'Emails Sent',    value: emails,        icon: 'fa-envelope',   color: '#f59e0b' },
+                { label: 'Delivered',      value: delivered,     icon: 'fa-check-circle',color:'#22c55e' },
+                { label: 'Fill Rate',      value: `${fillRate}%`,icon: 'fa-percent',    color: fillRate >= 80 ? '#22c55e' : '#ef4444' }
+            ].map(s => `
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(${s.color === '#0066FF' ? '0,102,255' : s.color === '#7c3aed' ? '124,58,237' : s.color === '#f59e0b' ? '245,158,11' : s.color === '#22c55e' ? '34,197,94' : '239,68,68'},0.08);border-radius:10px;border:1px solid rgba(${s.color === '#0066FF' ? '0,102,255' : s.color === '#7c3aed' ? '124,58,237' : s.color === '#f59e0b' ? '245,158,11' : s.color === '#22c55e' ? '34,197,94' : '239,68,68'},0.15);">
+                    <i class="fas ${s.icon}" style="color:${s.color};font-size:1rem;"></i>
+                    <div>
+                        <div style="font-size:1.1rem;font-weight:700;color:${s.color};line-height:1.1;">${s.value}</div>
+                        <div style="font-size:0.72rem;color:var(--color-text-secondary);">${s.label}</div>
+                    </div>
+                </div>`).join('');
+
+            subtitleEl.textContent = `${totalOrders} records · ${calls} AI calls · ${emails} emails · Fill rate ${fillRate}%`;
+
+            // ── Table rows ───────────────────────────────────────────────
+            const fsBadge = (fs) => {
+                const map = {
+                    fully_accepted:    { label: '✅ Full',    color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+                    partially_accepted:{ label: '⚡ Partial', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                    denied:            { label: '❌ Denied',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+                    pending:           { label: '⏳ Pending', color: '#0066FF', bg: 'rgba(0,102,255,0.1)' },
+                    unknown:           { label: '❓ Unknown', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' }
+                };
+                const b = map[fs] || map.unknown;
+                return `<span style="background:${b.bg};color:${b.color};border:1px solid ${b.color}33;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600;">${b.label}</span>`;
+            };
+            const osBadge = (os) => {
+                const map = {
+                    pending:   ['#9ca3af','rgba(156,163,175,0.08)','Pending'],
+                    confirmed: ['#0066FF','rgba(0,102,255,0.1)',   'Confirmed'],
+                    shipped:   ['#f59e0b','rgba(245,158,11,0.1)',  'Shipped'],
+                    delivered: ['#22c55e','rgba(34,197,94,0.1)',   'Delivered'],
+                    cancelled: ['#ef4444','rgba(239,68,68,0.1)',   'Cancelled']
+                };
+                const [c,bg,label] = map[os] || map.pending;
+                return `<span style="background:${bg};color:${c};border:1px solid ${c}33;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600;">${label}</span>`;
+            };
+
+            bodyEl.innerHTML = logs.map((log, idx) => {
+                const date = new Date(log.createdAt).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                const contactMethod = log.callStatus && log.callStatus !== 'not_initiated'
+                    ? `<span style="color:#7c3aed;font-weight:600;"><i class="fas fa-phone"></i> AI Voice</span>${log.emailStatus === 'sent' ? '<br><span style="color:#f59e0b;font-size:0.78rem;"><i class="fas fa-envelope"></i> Email</span>' : ''}`
+                    : log.emailStatus === 'sent'
+                        ? `<span style="color:#f59e0b;font-weight:600;"><i class="fas fa-envelope"></i> Email Only</span>`
+                        : '<span style="color:var(--color-text-secondary);font-size:0.78rem;">—</span>';
+
+                const transcript = (log.callTranscript || '').trim();
+                const transcriptHtml = transcript
+                    ? `<details style="margin-top:6px;">
+                          <summary style="cursor:pointer;font-size:0.75rem;color:#7c3aed;font-weight:600;">📝 View Transcript</summary>
+                          <div class="transcript-box">${this.escapeHtml(transcript)}</div>
+                       </details>`
+                    : '';
+
+                const markDeliverBtn = (log.orderStatus !== 'delivered' && log.orderStatus !== 'cancelled')
+                    ? `<button class="btn-icon" style="color:#22c55e;" title="Mark as Delivered"
+                            onclick="app.markOrderDelivered('${log._id}',${log.reorderQuantity},${idx})">
+                          <i class="fas fa-truck-loading"></i>
+                       </button>`
+                    : '';
+
+                const deliveredVal = log.finalQuantityAgreed !== null && log.finalQuantityAgreed !== undefined ? log.finalQuantityAgreed : '';
+                const deliveredDisplay = deliveredVal !== ''
+                    ? `<span class="editable-qty" onclick="app.startEditDelivered(this,'${log._id}')" title="Click to edit delivered quantity" style="cursor:pointer;text-decoration:underline dotted;">${deliveredVal}</span><br><small style="color:var(--color-text-secondary);">units <i class="fas fa-pen" style="font-size:0.6rem;color:var(--color-primary);"></i></small>`
+                    : `<button class="btn-icon" style="color:var(--color-primary);font-size:0.78rem;" onclick="app.startEditDelivered(this,'${log._id}')" title="Enter delivered quantity"><i class="fas fa-plus-circle"></i> Add</button>`;
+
+                return `<tr>
+                    <td style="white-space:nowrap;font-size:0.82rem;">${date}</td>
+                    <td><strong>${this.escapeHtml(log.productName)}</strong></td>
+                    <td>${contactMethod}${transcriptHtml}</td>
+                    <td style="text-align:center;">${log.reorderQuantity}<br><small style="color:var(--color-text-secondary);">units</small></td>
+                    <td style="text-align:center;" id="delcell-${log._id}">${deliveredDisplay}</td>
+                    <td>${fsBadge(log.fulfillmentStatus || 'pending')}</td>
+                    <td>${osBadge(log.orderStatus || 'pending')}</td>
+                    <td>${markDeliverBtn}</td>
+                </tr>`;
+            }).join('');
+
+            tableEl.style.display = 'table';
+        } catch (err) {
+            loadingEl.style.display = 'none';
+            subtitleEl.textContent = 'Failed to load history.';
+            console.error('[SupplierTracking]', err);
+        }
+    }
+
+    closeSupplierTracking() {
+        document.getElementById('supplierTrackingModal').classList.add('hidden');
+    }
+
+    // Inline edit for delivered quantity cell
+    startEditDelivered(el, logId) {
+        const cell = document.getElementById(`delcell-${logId}`);
+        if (!cell || cell.querySelector('input')) return; // already editing
+        const currentVal = cell.querySelector('.editable-qty')?.textContent || '';
+        cell.innerHTML = `
+            <div style="display:flex;align-items:center;gap:4px;">
+                <input type="number" id="delinput-${logId}" value="${currentVal}" min="0"
+                    style="width:64px;padding:4px 6px;border:1.5px solid var(--color-primary);border-radius:6px;font-size:0.85rem;background:var(--color-surface);color:var(--color-text);"
+                    onkeydown="if(event.key==='Enter')app.saveDelivered('${logId}');if(event.key==='Escape')app.cancelEditDelivered('${logId}','${currentVal}')">
+                <button class="btn-icon" style="color:#22c55e;" onclick="app.saveDelivered('${logId}')" title="Save"><i class="fas fa-check"></i></button>
+                <button class="btn-icon" style="color:var(--color-text-secondary);" onclick="app.cancelEditDelivered('${logId}','${currentVal}')" title="Cancel"><i class="fas fa-times"></i></button>
+            </div>`;
+        document.getElementById(`delinput-${logId}`)?.focus();
+    }
+
+    cancelEditDelivered(logId, originalVal) {
+        const cell = document.getElementById(`delcell-${logId}`);
+        if (!cell) return;
+        if (originalVal !== '') {
+            cell.innerHTML = `<span class="editable-qty" onclick="app.startEditDelivered(this,'${logId}')" title="Click to edit" style="cursor:pointer;text-decoration:underline dotted;">${originalVal}</span><br><small style="color:var(--color-text-secondary);">units <i class="fas fa-pen" style="font-size:0.6rem;color:var(--color-primary);"></i></small>`;
+        } else {
+            cell.innerHTML = `<button class="btn-icon" style="color:var(--color-primary);font-size:0.78rem;" onclick="app.startEditDelivered(this,'${logId}')" title="Enter delivered quantity"><i class="fas fa-plus-circle"></i> Add</button>`;
+        }
+    }
+
+    async saveDelivered(logId) {
+        const input = document.getElementById(`delinput-${logId}`);
+        if (!input) return;
+        const qty = parseInt(input.value, 10);
+        if (isNaN(qty) || qty < 0) { this.showNotification('Please enter a valid quantity.', 'error'); return; }
+        input.disabled = true;
+        try {
+            await this.api(`/reorder/${logId}/deliver`, { method: 'PATCH', body: { quantityReceived: qty, deliveryNotes: '' } });
+            this.showNotification(`Delivery quantity saved: ${qty} units.`, 'success');
+            const cell = document.getElementById(`delcell-${logId}`);
+            if (cell) cell.innerHTML = `<span class="editable-qty" onclick="app.startEditDelivered(this,'${logId}')" title="Click to edit" style="cursor:pointer;text-decoration:underline dotted;">${qty}</span><br><small style="color:var(--color-text-secondary);">units <i class="fas fa-pen" style="font-size:0.6rem;color:var(--color-primary);"></i></small>`;
+        } catch (err) {
+            this.showNotification('Failed to save: ' + err.message, 'error');
+            if (input) input.disabled = false;
+        }
+    }
+
+    async markOrderDelivered(logId, originalQty, rowIdx) {
+        const qtyInput = prompt(`How many units were actually delivered? (Requested: ${originalQty})`, originalQty);
+        if (qtyInput === null) return;
+        const qty = parseInt(qtyInput, 10);
+        if (isNaN(qty) || qty < 0) { this.showNotification('Please enter a valid quantity.', 'error'); return; }
+        try {
+            await this.api(`/reorder/${logId}/deliver`, { method: 'PATCH', body: { quantityReceived: qty, deliveryNotes: '' } });
+            this.showNotification(`Order marked as delivered. ${qty} units received.`, 'success');
+            const rows = document.querySelectorAll('#supplierTrackingBody tr');
+            if (rows[rowIdx]) rows[rowIdx].cells[6].innerHTML = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid #22c55e33;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600;">Delivered</span>';
+            if (rows[rowIdx]) rows[rowIdx].cells[7].innerHTML = '';
+            const delCell = document.getElementById(`delcell-${logId}`);
+            if (delCell) delCell.innerHTML = `<span class="editable-qty" onclick="app.startEditDelivered(this,'${logId}')" title="Click to edit" style="cursor:pointer;text-decoration:underline dotted;">${qty}</span><br><small style="color:var(--color-text-secondary);">units <i class="fas fa-pen" style="font-size:0.6rem;color:var(--color-primary);"></i></small>`;
+        } catch (err) {
+            this.showNotification('Failed to update: ' + err.message, 'error');
+        }
     }
 
     renderAlerts() {
@@ -959,8 +1161,11 @@ class GroceryInventorySystem {
                     <p><strong>Est. Lead Time:</strong> ${this.getSupplierLeadTime(suggestion.product.supplier)} days</p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                    <button class="btn btn--primary btn--sm" onclick="app.executeReorder('${suggestion.product._id || suggestion.product.id}', ${suggestion.suggestedQuantity})">
-                        <i class="fas fa-envelope"></i> Place Order
+                    <button class="btn btn--primary btn--sm" onclick="app.executeReorder('${suggestion.product._id || suggestion.product.id}', ${suggestion.suggestedQuantity})" title="Send reorder email only">
+                        <i class="fas fa-envelope"></i> Email Order
+                    </button>
+                    <button class="btn btn--sm btn--call" onclick="app.callAndEmailSupplier('${suggestion.product._id || suggestion.product.id}', ${suggestion.suggestedQuantity})" title="AI voice call supplier + send confirmation email">
+                        <i class="fas fa-phone"></i> AI Call + Email
                     </button>
                     <button class="btn btn--sm" style="background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;" onclick="app.markOrderReceived('${suggestion.product._id || suggestion.product.id}', '${suggestion.product.name.replace(/'/g, "\\'")}', ${suggestion.suggestedQuantity})">
                         <i class="fas fa-check-double"></i> Mark Received
@@ -1695,14 +1900,75 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             const data = await resp.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
 
-            const html = text
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/^### (.+)$/gm, '<h4 style="color:var(--color-primary);margin:14px 0 4px;">$1</h4>')
-                .replace(/^## (.+)$/gm, '<h3 style="margin:16px 0 6px;border-bottom:1px solid var(--color-border);padding-bottom:4px;">$1</h3>')
-                .replace(/^- (.+)$/gm, '<li style="margin:3px 0;">$1</li>')
-                .replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+            // ── Section config: icon, accent color, title keyword match ──
+            const sectionMeta = [
+                { key: 'executive',  icon: 'fa-bullseye',       color: '#0066FF', label: 'Executive Summary'         },
+                { key: 'immediate', icon: 'fa-bolt',            color: '#f59e0b', label: 'Top Immediate Actions'     },
+                { key: 'pricing',   icon: 'fa-tag',             color: '#7c3aed', label: 'Pricing Strategy'          },
+                { key: 'inventory', icon: 'fa-boxes',           color: '#10b981', label: 'Inventory Actions'         },
+                { key: '30',        icon: 'fa-chart-line',      color: '#22c55e', label: '30-Day Revenue Growth Plan' },
+                { key: 'risk',      icon: 'fa-exclamation-triangle', color: '#ef4444', label: 'Risk Alerts'         }
+            ];
 
-            if (output) output.innerHTML = `<div style="border-radius:10px;padding:18px;background:var(--color-surface);border:1px solid var(--color-border);line-height:1.75;font-size:0.875rem;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--color-border);"><i class="fas fa-robot" style="color:#4285F4;font-size:1.1rem;"></i><strong style="color:#4285F4;">Gemini AI Analysis</strong><span style="font-size:0.72rem;color:var(--color-text-secondary);margin-left:auto;">${new Date().toLocaleString('en-IN')}</span></div>${html}</div>`;
+            // Split on numbered headings like "**1. ..."" or "## 1. ..."
+            const rawSections = text.split(/(?=(?:\*\*|##\s*)\d+\.)/g).filter(s => s.trim());
+
+            const renderSection = (rawText, meta) => {
+                // Strip the heading line itself from the body
+                const lines = rawText.split('\n');
+                const bodyLines = [];
+                let headingDone = false;
+                for (const line of lines) {
+                    const isHeading = /^(?:\*\*|##)\s*\d+\./.test(line.trim());
+                    if (isHeading && !headingDone) { headingDone = true; continue; }
+                    bodyLines.push(line);
+                }
+                // Render body: bold, bullets, paragraphs
+                let body = bodyLines.join('\n')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/^[\*\-] (.+)$/gm, `<li style="margin:5px 0 5px 4px;line-height:1.6;">$1</li>`)
+                    .replace(/^(\d+)\. (.+)$/gm, `<li style="margin:5px 0 5px 4px;line-height:1.6;"><span style="color:${meta.color};font-weight:700;">$1.</span> $2</li>`)
+                    .replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, m => `<ul style="margin:8px 0 8px 12px;padding:0;list-style:none;">${m}</ul>`)
+                    .replace(/\n{2,}/g, '</p><p style="margin:8px 0;color:var(--color-text);">')
+                    .replace(/\n/g, ' ')
+                    .trim();
+                if (body && !body.startsWith('<')) body = `<p style="margin:8px 0;color:var(--color-text);">${body}</p>`;
+                return `
+                <div style="border-radius:12px;border:1px solid var(--color-border);overflow:hidden;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(${meta.color === '#0066FF' ? '0,102,255' : meta.color === '#f59e0b' ? '245,158,11' : meta.color === '#7c3aed' ? '124,58,237' : meta.color === '#10b981' ? '16,185,129' : meta.color === '#22c55e' ? '34,197,94' : '239,68,68'},0.07);border-bottom:1px solid var(--color-border);">
+                        <i class="fas ${meta.icon}" style="color:${meta.color};font-size:1rem;"></i>
+                        <span style="font-weight:700;font-size:0.9rem;color:var(--color-text);">${meta.label}</span>
+                    </div>
+                    <div style="padding:14px 16px;font-size:0.875rem;line-height:1.7;background:var(--color-surface);">${body || '<p style="color:var(--color-text-secondary);">No details provided.</p>'}</div>
+                </div>`;
+            };
+
+            let sectionsHtml = '';
+            if (rawSections.length >= 2) {
+                rawSections.forEach((sec, i) => {
+                    const meta = sectionMeta[i] || { icon: 'fa-info-circle', color: 'var(--color-primary)', label: `Section ${i + 1}` };
+                    sectionsHtml += renderSection(sec, meta);
+                });
+            } else {
+                // Fallback: simple clean text render if AI didn't use numbered sections
+                sectionsHtml = `<div style="font-size:0.875rem;line-height:1.75;color:var(--color-text);">${
+                    text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                        .replace(/^[\*\-] (.+)$/gm,'<li style="margin:4px 0;">$1</li>')
+                        .replace(/(<li.*?<\/li>\n?)+/gs, m=>`<ul style="margin:8px 0 8px 16px;">${m}</ul>`)
+                        .replace(/\n{2,}/g,'</p><p style="margin:8px 0;">')
+                        .replace(/\n/g,'<br>')
+                }</div>`;
+            }
+
+            if (output) output.innerHTML = `
+                <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-robot" style="color:#4285F4;font-size:1.1rem;"></i>
+                        <strong style="color:#4285F4;">Gemini AI Business Plan</strong>
+                    </div>
+                    <span style="font-size:0.72rem;color:var(--color-text-secondary);">${new Date().toLocaleString('en-IN')}</span>
+                </div>
+                ${sectionsHtml}`;
             localStorage.setItem('gemini_api_key', apiKey);
 
         } catch (err) {
@@ -2076,6 +2342,115 @@ Use the actual product names. Be specific and concise for a small retail owner.`
         } catch (err) {
             this.showNotification('Reorder failed: ' + err.message, 'error');
         }
+    }
+
+    async callAndEmailSupplier(productId, suggestedQty) {
+        const product = this.products.find(p => (p._id || p.id) == productId);
+        if (!product) { this.showNotification('Product not found', 'error'); return; }
+
+        // Ask for quantity confirmation with a prompt
+        const qtyStr = prompt(
+            `📞 AI Voice Call + Email Reorder\n\n` +
+            `Product:   ${product.name}\n` +
+            `Supplier:  ${product.supplier}\n` +
+            `Current Stock: ${product.currentStock} units\n\n` +
+            `The AI will:\n` +
+            `  1. Call the supplier on their registered phone\n` +
+            `  2. Negotiate the order (handles partial stock automatically)\n` +
+            `  3. Send a confirmation email with order details\n\n` +
+            `Enter quantity to request:`,
+            suggestedQty
+        );
+        if (!qtyStr || isNaN(qtyStr) || parseInt(qtyStr) <= 0) return;
+        const quantity = parseInt(qtyStr);
+
+        try {
+            this.showNotification('📞 Dispatching AI voice call to supplier...', 'info');
+            const result = await this.api('/voice-call', {
+                method: 'POST',
+                body: {
+                    productId: product._id || product.id,
+                    quantity,
+                    notes: 'AI auto-reorder initiated from InveXa sTacK dashboard'
+                }
+            });
+
+            // Show a detailed success modal
+            const isDemo = result.isDemo;
+            const callIcon  = result.callStatus === 'queued' ? '📞' : '⚠️';
+            const emailIcon = result.emailStatus === 'sent'  ? '📧' : '⚠️';
+
+            const lines = result.message.split('\n');
+            const callLine  = lines[0] || '';
+            const emailLine = lines[1] || '';
+
+            this.showVoiceCallResultBanner({
+                productName: product.name,
+                supplierName: product.supplier,
+                quantity,
+                callLine,
+                emailLine,
+                isDemo
+            });
+
+            await this.refreshAllData();
+        } catch (err) {
+            if (err.message.includes('no phone number')) {
+                this.showNotification(`❌ ${err.message}`, 'error');
+            } else {
+                this.showNotification('Call dispatch failed: ' + err.message, 'error');
+            }
+        }
+    }
+
+    showVoiceCallResultBanner({ productName, supplierName, quantity, callLine, emailLine, isDemo }) {
+        // Remove any previous banner
+        const old = document.getElementById('voiceCallResultBanner');
+        if (old) old.remove();
+
+        const banner = document.createElement('div');
+        banner.id = 'voiceCallResultBanner';
+        banner.style.cssText = `
+            position:fixed; bottom:24px; right:24px; z-index:9999;
+            background:linear-gradient(135deg,#1e1b4b,#312e81);
+            border:1px solid rgba(139,92,246,0.5);
+            border-radius:16px; padding:20px 24px; max-width:420px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            animation:slideInUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            font-family:inherit;
+        `;
+
+        banner.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">📞</div>
+                <div>
+                    <div style="font-weight:700;color:#e2e8f0;font-size:1rem;">AI Reorder Dispatched</div>
+                    <div style="font-size:0.78rem;color:#a78bfa;">${productName} → ${supplierName}</div>
+                </div>
+                <button onclick="document.getElementById('voiceCallResultBanner').remove()" style="margin-left:auto;background:none;border:none;color:#6b7280;font-size:1.2rem;cursor:pointer;padding:4px;">✕</button>
+            </div>
+            <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:0.85rem;color:#c4b5fd;">
+                <div style="margin-bottom:6px;"><span style="font-size:1rem;">📦</span> <strong style="color:#e2e8f0;">${quantity} units</strong> requested</div>
+                <div style="margin-bottom:6px;">${callLine}</div>
+                <div>${emailLine}</div>
+            </div>
+            ${isDemo ? `<div style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:#fbbf24;">
+                ⚠️ <strong>Demo Mode:</strong> Add your <code style="background:rgba(0,0,0,0.4);padding:1px 5px;border-radius:4px;">BLAND_API_KEY</code> in .env to enable live calls
+            </div>` : `<div style="font-size:0.78rem;color:#6b7280;">The AI agent will negotiate the order. Results will be logged in Reorder History once the call completes.</div>`}
+        `;
+
+        document.body.appendChild(banner);
+
+        // Inject animation keyframe if not already present
+        if (!document.getElementById('voiceCallAnimStyle')) {
+            const style = document.createElement('style');
+            style.id = 'voiceCallAnimStyle';
+            style.textContent = `@keyframes slideInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }`;
+            document.head.appendChild(style);
+        }
+
+        // Auto-remove after 12 seconds
+        setTimeout(() => { if (document.getElementById('voiceCallResultBanner')) banner.remove(); }, 12000);
     }
 
     async markOrderReceived(productId, productName, suggestedQty) {

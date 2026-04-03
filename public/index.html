@@ -2209,6 +2209,53 @@
         </div>
     </div>
 
+    <!-- Supplier Tracking Modal -->
+    <div id="supplierTrackingModal" class="modal hidden" style="z-index:1100;">
+        <div class="modal-backdrop" onclick="app.closeSupplierTracking()"></div>
+        <div class="modal-content supplier-tracking-content">
+            <div class="modal-header supplier-tracking-header">
+                <div>
+                    <h2 style="margin:0;display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-history" style="color:var(--color-primary);"></i>
+                        <span id="supplierTrackingTitle">Supplier Order History</span>
+                    </h2>
+                    <p style="margin:4px 0 0;font-size:0.8rem;color:var(--color-text-secondary);" id="supplierTrackingSubtitle">Complete interaction record — calls, emails, deliveries</p>
+                </div>
+                <button class="modal-close" onclick="app.closeSupplierTracking()"><i class="fas fa-times"></i></button>
+            </div>
+            <!-- Summary Stats Row -->
+            <div id="supplierTrackingStats" class="supplier-tracking-stats"></div>
+
+            <!-- History Table -->
+            <div class="supplier-tracking-body">
+                <div id="supplierTrackingLoading" class="supplier-tracking-state" style="display:none;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:2rem;margin-bottom:12px;display:block;color:var(--color-primary);"></i>
+                    Loading interaction history...
+                </div>
+                <div id="supplierTrackingEmpty" class="supplier-tracking-state" style="display:none;">
+                    <i class="fas fa-inbox" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:0.3;color:var(--color-text-secondary);"></i>
+                    <p style="font-weight:600;margin:0 0 4px;color:var(--color-text);">No interactions yet</p>
+                    <p style="font-size:0.82rem;margin:0;color:var(--color-text-secondary);">Use the Reorder panel to send emails or trigger AI voice calls for this supplier.</p>
+                </div>
+                <table class="data-table" id="supplierTrackingTable" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Date &amp; Time</th>
+                            <th>Product</th>
+                            <th>Contact Method</th>
+                            <th>Requested</th>
+                            <th>Delivered / Agreed</th>
+                            <th title="Whether the supplier accepted the AI voice call order request: Full = all units agreed, Partial = some agreed, Denied = refused">AI Call Result ℹ️</th>
+                            <th>Order Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="supplierTrackingBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     </body>
 
 </html>

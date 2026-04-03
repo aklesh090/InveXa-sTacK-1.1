@@ -37,7 +37,7 @@ const reorderLogSchema = new mongoose.Schema({
     },
     emailStatus: {
         type: String,
-        enum: ['sent', 'failed', 'pending'],
+        enum: ['sent', 'failed', 'pending', 'not_requested'],
         default: 'pending'
     },
     emailError: {
@@ -52,6 +52,33 @@ const reorderLogSchema = new mongoose.Schema({
     notes: {
         type: String,
         trim: true,
+        default: ''
+    },
+    // ─── AI Voice Call Fields ────────────────────────────────────────────────
+    callStatus: {
+        type: String,
+        enum: ['not_initiated', 'queued', 'in_progress', 'completed', 'failed'],
+        default: 'not_initiated'
+    },
+    callId: {
+        type: String,
+        default: ''
+    },
+    fulfillmentStatus: {
+        type: String,
+        enum: ['pending', 'fully_accepted', 'partially_accepted', 'denied', 'unknown'],
+        default: 'pending'
+    },
+    finalQuantityAgreed: {
+        type: Number,
+        default: null
+    },
+    callTranscript: {
+        type: String,
+        default: ''
+    },
+    supplierPhone: {
+        type: String,
         default: ''
     }
 }, {

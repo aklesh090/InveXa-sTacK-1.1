@@ -416,6 +416,48 @@ pre code {
   border-radius: var(--radius-sm);
 }
 
+/* ── AI Voice Call button ──────────────────────────────────── */
+.btn--call {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-12);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  transition: all 200ms ease;
+  box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+}
+
+.btn--call:hover {
+  background: linear-gradient(135deg, #6d28d9, #4338ca);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(124, 58, 237, 0.45);
+}
+
+.btn--call:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn--call i {
+  animation: phoneRing 2s infinite;
+  transform-origin: center;
+}
+
+@keyframes phoneRing {
+  0%,  50%, 100% { transform: rotate(0deg) scale(1); }
+  10%            { transform: rotate(-18deg) scale(1.1); }
+  20%            { transform: rotate(16deg)  scale(1.1); }
+  30%            { transform: rotate(-12deg) scale(1.05); }
+  40%            { transform: rotate(10deg)  scale(1.05); }
+}
+
 .btn--lg {
   padding: var(--space-10) var(--space-20);
   font-size: var(--font-size-lg);
@@ -1879,3 +1921,98 @@ select.form-control {
     opacity: 1;
   }
 }
+
+/* ── Supplier Tracking Modal ──────────────────────────────────── */
+.supplier-tracking-content {
+  max-width: 920px;
+  width: 95vw;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.supplier-tracking-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.supplier-tracking-stats {
+  display: flex;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.supplier-tracking-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+  background: var(--color-background);
+}
+
+.supplier-tracking-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-secondary);
+}
+
+.transcript-box {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(var(--color-teal-500-rgb, 0, 102, 255), 0.05);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.77rem;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table thead th {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.71rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 16px;
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-secondary);
+}
+
+.data-table tbody td {
+  padding: 12px 16px;
+  vertical-align: top;
+  color: var(--color-text);
+}
+
