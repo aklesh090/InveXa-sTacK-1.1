@@ -852,7 +852,7 @@ class GroceryInventorySystem {
             <tr>
                 <td>
                     <div>
-                        <a href="#" onclick="event.preventDefault();app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g,"\\'")}')"
+                        <a href="#" onclick="event.preventDefault();app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g, "\\'")}')"
                            style="color:var(--color-text);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:6px;"
                            title="Click to view interaction history">
                             ${this.escapeHtml(supplier.name)}
@@ -882,7 +882,7 @@ class GroceryInventorySystem {
                 <td>
                     <div class="table-actions">
                         ${upiBtn}
-                        <button class="btn-icon" style="color:#7c3aed;" onclick="app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g,"\\'")}')"
+                        <button class="btn-icon" style="color:#7c3aed;" onclick="app.showSupplierTracking('${supplier._id || supplier.id}','${this.escapeHtml(supplier.name).replace(/'/g, "\\'")}')"
                             title="View order & call history">
                             <i class="fas fa-history"></i>
                         </button>
@@ -929,20 +929,20 @@ class GroceryInventorySystem {
             }
 
             // ── Summary stats ────────────────────────────────────────────
-            const totalOrders    = logs.length;
-            const calls          = logs.filter(l => l.callStatus && l.callStatus !== 'not_initiated').length;
-            const emails         = logs.filter(l => l.emailStatus === 'sent').length;
-            const delivered      = logs.filter(l => l.orderStatus === 'delivered').length;
+            const totalOrders = logs.length;
+            const calls = logs.filter(l => l.callStatus && l.callStatus !== 'not_initiated').length;
+            const emails = logs.filter(l => l.emailStatus === 'sent').length;
+            const delivered = logs.filter(l => l.orderStatus === 'delivered').length;
             const totalRequested = logs.reduce((s, l) => s + (l.reorderQuantity || 0), 0);
             const totalDelivered = logs.reduce((s, l) => s + (l.finalQuantityAgreed || 0), 0);
-            const fillRate       = totalRequested > 0 ? Math.round((totalDelivered / totalRequested) * 100) : 0;
+            const fillRate = totalRequested > 0 ? Math.round((totalDelivered / totalRequested) * 100) : 0;
 
             statsEl.innerHTML = [
-                { label: 'Total Orders',   value: totalOrders,  icon: 'fa-box',        color: '#0066FF' },
-                { label: 'AI Calls Made',  value: calls,         icon: 'fa-phone',      color: '#7c3aed' },
-                { label: 'Emails Sent',    value: emails,        icon: 'fa-envelope',   color: '#f59e0b' },
-                { label: 'Delivered',      value: delivered,     icon: 'fa-check-circle',color:'#22c55e' },
-                { label: 'Fill Rate',      value: `${fillRate}%`,icon: 'fa-percent',    color: fillRate >= 80 ? '#22c55e' : '#ef4444' }
+                { label: 'Total Orders', value: totalOrders, icon: 'fa-box', color: '#0066FF' },
+                { label: 'AI Calls Made', value: calls, icon: 'fa-phone', color: '#7c3aed' },
+                { label: 'Emails Sent', value: emails, icon: 'fa-envelope', color: '#f59e0b' },
+                { label: 'Delivered', value: delivered, icon: 'fa-check-circle', color: '#22c55e' },
+                { label: 'Fill Rate', value: `${fillRate}%`, icon: 'fa-percent', color: fillRate >= 80 ? '#22c55e' : '#ef4444' }
             ].map(s => `
                 <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(${s.color === '#0066FF' ? '0,102,255' : s.color === '#7c3aed' ? '124,58,237' : s.color === '#f59e0b' ? '245,158,11' : s.color === '#22c55e' ? '34,197,94' : '239,68,68'},0.08);border-radius:10px;border:1px solid rgba(${s.color === '#0066FF' ? '0,102,255' : s.color === '#7c3aed' ? '124,58,237' : s.color === '#f59e0b' ? '245,158,11' : s.color === '#22c55e' ? '34,197,94' : '239,68,68'},0.15);">
                     <i class="fas ${s.icon}" style="color:${s.color};font-size:1rem;"></i>
@@ -957,29 +957,29 @@ class GroceryInventorySystem {
             // ── Table rows ───────────────────────────────────────────────
             const fsBadge = (fs) => {
                 const map = {
-                    fully_accepted:    { label: '✅ Full',    color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-                    partially_accepted:{ label: '⚡ Partial', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-                    denied:            { label: '❌ Denied',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-                    pending:           { label: '⏳ Pending', color: '#0066FF', bg: 'rgba(0,102,255,0.1)' },
-                    unknown:           { label: '❓ Unknown', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' }
+                    fully_accepted: { label: '✅ Full', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+                    partially_accepted: { label: '⚡ Partial', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                    denied: { label: '❌ Denied', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+                    pending: { label: '⏳ Pending', color: '#0066FF', bg: 'rgba(0,102,255,0.1)' },
+                    unknown: { label: '❓ Unknown', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' }
                 };
                 const b = map[fs] || map.unknown;
                 return `<span style="background:${b.bg};color:${b.color};border:1px solid ${b.color}33;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600;">${b.label}</span>`;
             };
             const osBadge = (os) => {
                 const map = {
-                    pending:   ['#9ca3af','rgba(156,163,175,0.08)','Pending'],
-                    confirmed: ['#0066FF','rgba(0,102,255,0.1)',   'Confirmed'],
-                    shipped:   ['#f59e0b','rgba(245,158,11,0.1)',  'Shipped'],
-                    delivered: ['#22c55e','rgba(34,197,94,0.1)',   'Delivered'],
-                    cancelled: ['#ef4444','rgba(239,68,68,0.1)',   'Cancelled']
+                    pending: ['#9ca3af', 'rgba(156,163,175,0.08)', 'Pending'],
+                    confirmed: ['#0066FF', 'rgba(0,102,255,0.1)', 'Confirmed'],
+                    shipped: ['#f59e0b', 'rgba(245,158,11,0.1)', 'Shipped'],
+                    delivered: ['#22c55e', 'rgba(34,197,94,0.1)', 'Delivered'],
+                    cancelled: ['#ef4444', 'rgba(239,68,68,0.1)', 'Cancelled']
                 };
-                const [c,bg,label] = map[os] || map.pending;
+                const [c, bg, label] = map[os] || map.pending;
                 return `<span style="background:${bg};color:${c};border:1px solid ${c}33;padding:2px 8px;border-radius:20px;font-size:0.75rem;font-weight:600;">${label}</span>`;
             };
 
             bodyEl.innerHTML = logs.map((log, idx) => {
-                const date = new Date(log.createdAt).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                const date = new Date(log.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const contactMethod = log.callStatus && log.callStatus !== 'not_initiated'
                     ? `<span style="color:#7c3aed;font-weight:600;"><i class="fas fa-phone"></i> AI Voice</span>${log.emailStatus === 'sent' ? '<br><span style="color:#f59e0b;font-size:0.78rem;"><i class="fas fa-envelope"></i> Email</span>' : ''}`
                     : log.emailStatus === 'sent'
@@ -1162,10 +1162,10 @@ class GroceryInventorySystem {
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
                     <button class="btn btn--primary btn--sm" onclick="app.executeReorder('${suggestion.product._id || suggestion.product.id}', ${suggestion.suggestedQuantity})" title="Send reorder email only">
-                        <i class="fas fa-envelope"></i> Email Order
+                        <i class="fas fa-envelope"></i>  Email Order
                     </button>
                     <button class="btn btn--sm btn--call" onclick="app.callAndEmailSupplier('${suggestion.product._id || suggestion.product.id}', ${suggestion.suggestedQuantity})" title="AI voice call supplier + send confirmation email">
-                        <i class="fas fa-phone"></i> AI Call + Email
+                        <i class="fas fa-phone"></i>  Call + Email
                     </button>
                     <button class="btn btn--sm" style="background:#10b981;color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;" onclick="app.markOrderReceived('${suggestion.product._id || suggestion.product.id}', '${suggestion.product.name.replace(/'/g, "\\'")}', ${suggestion.suggestedQuantity})">
                         <i class="fas fa-check-double"></i> Mark Received
@@ -1902,12 +1902,12 @@ Use the actual product names. Be specific and concise for a small retail owner.`
 
             // ── Section config: icon, accent color, title keyword match ──
             const sectionMeta = [
-                { key: 'executive',  icon: 'fa-bullseye',       color: '#0066FF', label: 'Executive Summary'         },
-                { key: 'immediate', icon: 'fa-bolt',            color: '#f59e0b', label: 'Top Immediate Actions'     },
-                { key: 'pricing',   icon: 'fa-tag',             color: '#7c3aed', label: 'Pricing Strategy'          },
-                { key: 'inventory', icon: 'fa-boxes',           color: '#10b981', label: 'Inventory Actions'         },
-                { key: '30',        icon: 'fa-chart-line',      color: '#22c55e', label: '30-Day Revenue Growth Plan' },
-                { key: 'risk',      icon: 'fa-exclamation-triangle', color: '#ef4444', label: 'Risk Alerts'         }
+                { key: 'executive', icon: 'fa-bullseye', color: '#0066FF', label: 'Executive Summary' },
+                { key: 'immediate', icon: 'fa-bolt', color: '#f59e0b', label: 'Top Immediate Actions' },
+                { key: 'pricing', icon: 'fa-tag', color: '#7c3aed', label: 'Pricing Strategy' },
+                { key: 'inventory', icon: 'fa-boxes', color: '#10b981', label: 'Inventory Actions' },
+                { key: '30', icon: 'fa-chart-line', color: '#22c55e', label: '30-Day Revenue Growth Plan' },
+                { key: 'risk', icon: 'fa-exclamation-triangle', color: '#ef4444', label: 'Risk Alerts' }
             ];
 
             // Split on numbered headings like "**1. ..."" or "## 1. ..."
@@ -1951,13 +1951,12 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                 });
             } else {
                 // Fallback: simple clean text render if AI didn't use numbered sections
-                sectionsHtml = `<div style="font-size:0.875rem;line-height:1.75;color:var(--color-text);">${
-                    text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                        .replace(/^[\*\-] (.+)$/gm,'<li style="margin:4px 0;">$1</li>')
-                        .replace(/(<li.*?<\/li>\n?)+/gs, m=>`<ul style="margin:8px 0 8px 16px;">${m}</ul>`)
-                        .replace(/\n{2,}/g,'</p><p style="margin:8px 0;">')
-                        .replace(/\n/g,'<br>')
-                }</div>`;
+                sectionsHtml = `<div style="font-size:0.875rem;line-height:1.75;color:var(--color-text);">${text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/^[\*\-] (.+)$/gm, '<li style="margin:4px 0;">$1</li>')
+                    .replace(/(<li.*?<\/li>\n?)+/gs, m => `<ul style="margin:8px 0 8px 16px;">${m}</ul>`)
+                    .replace(/\n{2,}/g, '</p><p style="margin:8px 0;">')
+                    .replace(/\n/g, '<br>')
+                    }</div>`;
             }
 
             if (output) output.innerHTML = `
@@ -2377,11 +2376,11 @@ Use the actual product names. Be specific and concise for a small retail owner.`
 
             // Show a detailed success modal
             const isDemo = result.isDemo;
-            const callIcon  = result.callStatus === 'queued' ? '📞' : '⚠️';
-            const emailIcon = result.emailStatus === 'sent'  ? '📧' : '⚠️';
+            const callIcon = result.callStatus === 'queued' ? '📞' : '⚠️';
+            const emailIcon = result.emailStatus === 'sent' ? '📧' : '⚠️';
 
             const lines = result.message.split('\n');
-            const callLine  = lines[0] || '';
+            const callLine = lines[0] || '';
             const emailLine = lines[1] || '';
 
             this.showVoiceCallResultBanner({
@@ -2509,7 +2508,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             salesData: this.salesData,
             stockAdjustments: this.stockAdjustments || []
         };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -2545,7 +2544,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             const totalValue = this.products.reduce((s, p) => s + (p.currentStock * p.costPrice), 0);
             const lowStock = this.products.filter(p => p.currentStock <= p.minimumStock).length;
             doc.setFontSize(9);
-            doc.text(`Total Products: ${this.products.length} | Total Inventory Value: ₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} | Low Stock Items: ${lowStock} | Suppliers: ${this.suppliers.length}`, 14, 26);
+            doc.text(`Total Products: ${this.products.length} | Total Inventory Value: Rs. ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} | Low Stock Items: ${lowStock} | Suppliers: ${this.suppliers.length}`, 14, 26);
 
             // - Products Table -
             doc.setFontSize(11);
@@ -2554,7 +2553,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
 
             doc.autoTable({
                 startY: 37,
-                head: [['Name', 'Category', 'Supplier', 'Stock', 'Min Stock', 'Cost ₹', 'Sell ₹', 'Status', 'Expiry']],
+                head: [['Name', 'Category', 'Supplier', 'Stock', 'Min Stock', 'Cost Rs.', 'Sell Rs.', 'Status', 'Expiry']],
                 body: this.products.map(p => {
                     const status = p.currentStock <= p.minimumStock ? 'Low' : p.currentStock <= p.minimumStock * 1.5 ? 'Medium' : 'Good';
                     return [
@@ -2563,8 +2562,8 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                         p.supplier,
                         p.currentStock,
                         p.minimumStock,
-                        `₹${(p.costPrice || 0).toFixed(2)}`,
-                        `₹${(p.sellingPrice || 0).toFixed(2)}`,
+                        `Rs. ${(p.costPrice || 0).toFixed(2)}`,
+                        `Rs. ${(p.sellingPrice || 0).toFixed(2)}`,
                         status,
                         p.expiryDate ? new Date(p.expiryDate).toLocaleDateString('en-IN') : 'N/A'
                     ];
@@ -2620,7 +2619,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                 body: this.categories.map(c => [
                     c.name,
                     c.totalProducts || 0,
-                    `₹${(c.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                    `Rs. ${(c.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     `${(c.avgMargin || 0).toFixed(1)}%`
                 ]),
                 styles: { fontSize: 8, cellPadding: 2 },
@@ -4824,7 +4823,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
     // - -- - Export Functions - --"-
     exportSoldJSON() {
         const data = this.soldData || [];
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = `invexa-sales-${new Date().toISOString().split('T')[0]}.json`;
@@ -4837,7 +4836,7 @@ Use the actual product names. Be specific and concise for a small retail owner.`
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             doc.setFontSize(18);
-            doc.text('InveXa sTacK --- Sales Report', 14, 22);
+            doc.text('InveXa sTacK - Sales Report', 14, 22);
             doc.setFontSize(10);
             doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 30);
 
@@ -4849,8 +4848,8 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                         new Date(sale.saleDate || sale.createdAt).toLocaleDateString('en-IN'),
                         item.productName,
                         item.quantity,
-                        '₹' + item.price.toLocaleString('en-IN'),
-                        '₹' + item.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                        'Rs. ' + item.price.toLocaleString('en-IN'),
+                        'Rs. ' + item.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })
                     ]);
                 });
             });
@@ -4863,9 +4862,9 @@ Use the actual product names. Be specific and concise for a small retail owner.`
                 headStyles: { fillColor: [0, 102, 255] }
             });
 
-            const total = rows.reduce((s, r) => s + parseFloat(r[4].replace(/[₹,]/g, '')), 0);
+            const total = rows.reduce((s, r) => s + parseFloat(r[4].replace(/[₹,]/g, '').replace(/Rs\.\s*/g, '')), 0);
             doc.setFontSize(12);
-            doc.text(`Total: ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, doc.lastAutoTable.finalY + 14);
+            doc.text(`Total: Rs. ${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, doc.lastAutoTable.finalY + 14);
 
             doc.save(`invexa-sales-${new Date().toISOString().split('T')[0]}.pdf`);
             this.showNotification('Sales report exported as PDF', 'success');
