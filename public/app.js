@@ -18,7 +18,7 @@ class GroceryInventorySystem {
         this.init();
     }
 
-    // â"€â"€â"€ API Helper (with JWT auth) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+ 
     async api(path, options = {}) {
         try {
             const token = localStorage.getItem('invexa_token');

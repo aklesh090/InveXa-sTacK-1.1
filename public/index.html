@@ -656,7 +656,7 @@
                     ['addProductBtn', 'stockAdjustBtn', 'exportDataBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
                     document.querySelectorAll('.sidebar-nav a').forEach(link => {
                         const section = link.getAttribute('data-section');
-                        if (['categories', 'suppliers'].includes(section)) { link.closest('li').style.display = 'none'; }
+                        if (['categories', 'suppliers', 'salesprofit', 'prediction'].includes(section)) { link.closest('li').style.display = 'none'; }
                     });
                 }
             } catch (e) { console.error('Role error:', e); }
